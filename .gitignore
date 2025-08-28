@@ -1,0 +1,22 @@
+# Python virtual env
+.venv
+
+# Python cache directories
+__pycache__/
+
+# Tailwind compiler output
+src/static/css/output.css
+
+# Environment variables file
+.env
+
+# PDF files (from Invoice generation)
+*.pdf
+
+# Database file
+src/database.db
+
+# Personal notes
+styles.txt
+test.pdf
+todo.txt

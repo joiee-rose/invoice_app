@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>{% block title %}{% endblock %}</title>
+        <link rel="stylesheet" href="/static/css/output.css">
+        <!-- Mona Sans Font from Google Fonts -->
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Mona+Sans:ital,wght@0,200..900;1,200..900&display=swap" rel="stylesheet">
+        <!-- CSS -->
+        {% if colorTheme == "emerald-400" %}
+            {% set iconHoverColor = "oklch(84.5% 0.143 164.978)" %} <!-- emerald 300 -->
+        {% elif colorTheme == "blue-400" %}
+            {% set iconHoverColor = "oklch(80.9% 0.105 251.813)" %} <!-- blue 300 -->
+        {% elif colorTheme == "violet-400" %}
+            {% set iconHoverColor = "oklch(81.1% 0.111 293.571)" %} <!-- violet 300 -->
+        {% elif colorTheme == "fuchsia-400" %}
+            {% set iconHoverColor = "oklch(83.3% 0.145 321.434)" %} <!-- fuchsia 300 -->
+        {% elif colorTheme == "rose-400" %}
+            {% set iconHoverColor = "oklch(81% 0.117 11.638)" %} <!-- rose 300 -->
+        {% endif %}
+        <style>
+            body {
+                font-family: 'Mona Sans', sans-serif;
+                font-weight: 400;
+            }
+
+            .nav-item a {
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+            }
+
+            .nav-item .icon-wrapper {
+                position: relative;
+                display: inline-block;
+                width: 1.875rem;
+                height: 1.875rem;
+            }
+
+            .nav-item .icon {
+                position: absolute;
+                top: 0;
+                left: 0;
+                transition: opacity 0.2s ease;
+            }
+
+            .nav-item a .icon.solid {
+                opacity: 0; /* hide solid by default */
+                transition: opacity 0.3s;
+            }
+
+            .nav-item a:hover .icon.solid { opacity: 1; }
+            .nav-item a:hover .icon.outline { opacity: 0; }
+
+            .nav-item p {
+                position: relative;
+                display: inline-block;
+            }
+
+            .nav-item p::after {
+                content: "";
+                position: absolute;
+                left: 50%;
+                bottom: 0;
+                width: 0;
+                height: 2px; /* underline thickness */
+                background-color: currentColor; /* matches text color */
+                transition: width 0.3s ease, left 0.3s ease;
+                transform: translateX(-50%);
+            }
+
+            .nav-item a:hover p::after {
+                width: 100%;
+                left: 50%;
+            }
+        </style>
+        {% block css %}{% endblock %}
+    </head> 
+    <body class="w-screen h-screen flex flex-row gap-4 bg-gray-100">
+        <!-- Side Navigation Bar -->
+        <aside class="w-64 h-full bg-gray-100">
+            <nav class="w-full h-full m-4 p-4 bg-gray-50 shadow-gray-950 shadow-lg/20 rounded-lg">
+                <ul id="nav-items" class="h-full flex flex-col gap-4">
+                    <!-- Dashboard -->
+                    <li class="nav-item">
+                        <a href="/" class="flex flex-row gap-2 items-center text-base cursor-pointer">
+                            <div class="icon-wrapper overflow-hidden flex-shrink-0">
+                                <span class="icon outline">{{ heroicon_outline("home", width="1.875rem", height="1.875rem") }}</span>
+                                <span class="icon solid">{{ heroicon_solid("home", width="1.875rem", height="1.875rem", color=iconHoverColor) }}</span>
+                            </div>
+                            <p>Dashboard</p>
+                        </a>
+                    </li>
+                    <!-- Clients -->
+                    <li class="nav-item">
+                        <a href="/clients" class="flex flex-row gap-2 items-center text-base cursor-pointer">
+                            <div class="icon-wrapper overflow-hidden flex-shrink-0">
+                                <span class="icon outline">{{ heroicon_outline("users", width="1.875rem", height="1.875rem") }}</span>
+                                <span class="icon solid">{{ heroicon_solid("users", width="1.875rem", height="1.875rem", color=iconHoverColor) }}</span>
+                            </div>
+                            <p>Clients</p>
+                        </a>
+                    </li>
+                    <!-- Services -->
+                    <li class="nav-item">
+                        <a href="/services" class="flex flex-row gap-2 items-center text-base cursor-pointer">
+                            <div class="icon-wrapper overflow-hidden flex-shrink-0">
+                                <span class="icon outline">{{ heroicon_outline("wrench-screwdriver", width="1.875rem", height="1.875rem") }}</span>
+                                <span class="icon solid">{{ heroicon_solid("wrench-screwdriver", width="1.875rem", height="1.875rem", color=iconHoverColor) }}</span>
+                            </div>
+                            <p>Services</p>
+                        </a>
+                    </li>
+                    <!-- Invoices -->
+                    <li class="nav-item">
+                        <a href="/invoices" class="flex flex-row gap-2 items-center text-base cursor-pointer">
+                            <div class="icon-wrapper overflow-hidden flex-shrink-0">
+                                <span class="icon outline">{{ heroicon_outline("document-currency-dollar", width="1.875rem", height="1.875rem") }}</span>
+                                <span class="icon solid">{{ heroicon_solid("document-currency-dollar", width="1.875rem", height="1.875rem", color=iconHoverColor) }}</span>
+                            </div>
+                            <p>Invoices</p>
+                        </a>
+                    </li>
+                    <!-- Settings -->
+                    <li class="nav-item">
+                        <a href="/settings" class="flex flex-row gap-2 items-center text-base cursor-pointer">
+                            <div class="icon-wrapper overflow-hidden flex-shrink-0">
+                                <span class="icon outline">{{ heroicon_outline("cog-6-tooth", width="1.875rem", height="1.875rem") }}</span>
+                                <span class="icon solid">{{ heroicon_solid("cog-6-tooth", width="1.875rem", height="1.875rem", color=iconHoverColor) }}</span>
+                            </div>
+                            <p>Settings</p>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+        </aside>
+        <!-- Content -->
+        <main class="w-full h-full m-4 p-4 bg-gray-50 shadow-gray-950 shadow-lg/20 rounded-lg">
+            {% block content %}
+            {% endblock %}
+        </main>
+        <!-- JavaScript -->
+        {% block javascript %}{% endblock %}
+</html>

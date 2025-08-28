@@ -1,0 +1,304 @@
+{% extends "base.html" %}
+
+{% block title %}
+    Clients
+{% endblock %}
+
+{% if colorTheme == "emerald-400" %}
+    {% set tableRowHoverColor = "oklch(90.5% 0.093 164.15)" %} <!-- emerald 200 -->
+    {% set clients_iconHoverColor = "oklch(59.6% 0.145 163.225)" %} <!-- emerald 600 -->
+    {% set clients_closeFormIconHoverColor = "oklch(76.5% 0.177 163.223)" %} <!-- emerald 400 -->
+{% elif colorTheme == "blue-400" %}
+    {% set tableRowHoverColor = "oklch(88.2% 0.059 254.128)" %} <!-- blue 200 -->
+    {% set clients_iconHoverColor = "oklch(54.6% 0.245 262.881)" %} <!-- blue 600 -->
+    {% set clients_closeFormIconHoverColor = "oklch(70.7% 0.165 254.624)" %} <!-- blue 400 -->
+{% elif colorTheme == "violet-400" %}
+    {% set tableRowHoverColor = "oklch(89.4% 0.057 293.283)" %} <!-- violet 200 -->
+    {% set clients_iconHoverColor = "oklch(54.1% 0.281 293.009)" %} <!-- violet 600 -->
+    {% set clients_closeFormIconHoverColor = "oklch(70.2% 0.183 293.541)" %} <!-- violet 400 -->
+{% elif colorTheme == "fuchsia-400" %}
+    {% set tableRowHoverColor = "oklch(90.3% 0.076 319.62)" %} <!-- fuchsia 200 -->
+    {% set clients_iconHoverColor = "oklch(59.1% 0.293 322.896)" %} <!-- fuchsia 600 -->
+    {% set clients_closeFormIconHoverColor = "oklch(74% 0.238 322.16)" %} <!-- fuchsia 400 -->
+{% elif colorTheme == "rose-400" %}
+    {% set tableRowHoverColor = "oklch(89.2% 0.058 10.001)" %} <!-- rose 200 -->
+    {% set clients_iconHoverColor = "oklch(58.6% 0.253 17.585)" %} <!-- rose 600 -->
+    {% set clients_closeFormIconHoverColor = "oklch(71.2% 0.194 13.428)" %} <!-- rose 400 -->
+{% endif %}
+
+{% block css %}
+    <style>
+        #tbody_all-clients tr:hover {
+            background-color: {{ tableRowHoverColor }};
+        }
+
+        .icon-wrapper {
+            position: relative;
+            display: inline-block;
+            width: 1.25rem;
+            height: 1.25rem;
+        }
+
+        .form-icon-wrapper {
+            position: relative;
+            display: inline-block;
+            width: 1.875rem;
+            height: 1.875rem;
+        }
+
+        .icon, .form-icon-wrapper .icon {
+            position: absolute;
+            top: 0;
+            left: 0;
+            transition: opacity 0.2s ease;
+        }
+
+        .icon.solid, .form-icon-wrapper .icon.solid {
+            opacity: 0; /* hide solid by default */
+            transition: opacity 0.3s;
+        }
+
+        .icon-wrapper:hover .icon.solid, .form-icon-wrapper:hover .icon.solid { opacity: 1; }
+        .icon-wrapper:hover .icon.outline, .form-icon-wrapper:hover .icon.outline { opacity: 0; }
+    </style>
+{% endblock %}
+
+{% block content %}
+    <!-- My Clients -->
+    <div class="flex flex-col">
+        <div class="mb-4 flex flex-row justify-between">
+            <h1 class="text-3xl font-bold">My Clients</h1>
+            <button id="btn_show-new-client-form" class="h-[2.25rem] pl-4 pr-4 bg-{{ colorTheme }} rounded-md text-base font-semibold cursor-pointer">New Client</button>
+        </div>
+        <!-- table of current clients -->
+        <div class="relative w-full h-full overflow-scroll flex flex-col bg-white shadow-md rounded-lg bg-clip-border">
+            <table class="w-full min-w-max table-auto text-left">
+                <thead>
+                    <tr class="h-[2.25rem] bg-{{ colorTheme }} border-b">
+                        <th class="w-[20%] p-4">Name</th>
+                        <th class="w-[20%] p-4">Business Name</th>
+                        <th class="w-[25%] p-4">Billing Address</th>
+                        <th class="w-[15%] p-4">Email</th>
+                        <th class="w-[12%] p-4">Phone No.</th>
+                        <th class="w-[8%] p-4"></th>
+                    </tr>
+                </thead>
+                <tbody id="tbody_all-clients">
+                    {% set tableHoverColor = colorTheme.replace("4", "2") %}
+                    {% for client in clients %}
+                    <tr class="h-[2.25rem] hover:bg-{{ tableHoverColor }}">
+                        <td class="p-4">{{ client.name }}</td>
+                        <td class="p-4">{{ client.business_name }}</td>
+                        <td class="p-4">{{ client.get_billing_address() }}</td>
+                        <td class="p-4">{{ client.email }}</td>
+                        <td class="p-4">{{ client.phone }}</td>
+                        <td class="flex flex-row gap-4 p-4">
+                            <!-- Edit Client Buttons -->
+                            <button
+                                id="btn_show-edit-client-form-{{ client.id }}"
+                                data-name="{{ client.name }}"
+                                data-business-name="{{ client.business_name }}"
+                                data-street-address="{{ client.street_address }}"
+                                data-city="{{ client.city }}"
+                                data-state="{{ client.state }}"
+                                data-zip-code="{{ client.zip_code }}"
+                                data-email="{{ client.email }}"
+                                data-phone="{{ client.phone }}"
+                                data-client-id="{{ client.id }}"
+                                class="flex cursor-pointer"
+                            >
+                                <div class="icon-wrapper overflow-hidden flex-shrink-0">
+                                    <span class="icon outline">{{ heroicon_outline("pencil", width="1.25rem", height="1.25rem") }}</span>
+                                    <span class="icon solid">{{ heroicon_solid("pencil", width="1.25rem", height="1.25rem", color=clients_iconHoverColor) }}</span>
+                                </div>
+                            </button>
+                            <!-- Remove Client Buttons -->
+                            <button
+                                id="btn_show-remove-client-form-{{ client.id }}"
+                                data-name="{{ client.name }}"
+                                data-business-name="{{ client.business_name }}"
+                                data-client-id="{{ client.id }}"
+                                class="cursor-pointer group"
+                            >
+                                <div class="icon-wrapper overflow-hidden flex-shrink-0">
+                                    <span class="icon outline">{{ heroicon_outline("trash", width="1.25rem", height="1.25rem") }}</span>
+                                    <span class="icon solid">{{ heroicon_solid("trash", width="1.25rem", height="1.25rem", color=clients_iconHoverColor) }}</span>
+                                </div>
+                            </button>
+                            <!-- Client Quote Profile Buttons -->
+                            <button
+                                id="btn_show-client-quote-profile-form-{{ client.id }}"
+                                data-name="{{ client.name }}"
+                                data-business-name="{{ client.business_name }}"
+                                data-street-address="{{ client.street_address }}"
+                                data-city="{{ client.city }}"
+                                data-state="{{ client.state }}"
+                                data-zip-code="{{ client.zip_code }}"
+                                data-client-id="{{ client.id }}"
+                                class="cursor-pointer group"
+                            >
+                                <div class="icon-wrapper overflow-hidden flex-shrink-0">
+                                    <span class="icon outline">{{ heroicon_outline("document-currency-dollar", width="1.25rem", height="1.25rem") }}</span>
+                                    <span class="icon solid">{{ heroicon_solid("document-currency-dollar", width="1.25rem", height="1.25rem", color=clients_iconHoverColor) }}</span>
+                                </div>
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Client Form Dialog -->
+    <dialog id="dialog_client-form" class="w-160 m-auto p-4 flex flex-col bg-gray-50 rounded-lg" hidden>
+        <!-- Form Header -->
+        <div class="mb-4 flex flex-row justify-between">
+            <h2 id="h2_client-form-header" class="text-2xl font-bold"></h2>
+            <button id="btn_hide-client-form" class="cursor-pointer group">
+                <div class="form-icon-wrapper overflow-hidden flex-shrink-0">
+                    <span class="icon outline">{{ heroicon_outline("x-circle", width="1.875rem", height="1.875rem") }}</span>
+                    <span class="icon solid">{{ heroicon_solid("x-circle", width="1.875rem", height="1.875rem", color=clients_closeFormIconHoverColor) }}</span>
+                </div>
+            </button>
+        </div>
+        <!-- Form -->
+        <form id="form_client-form" method="post">
+            <div class="mb-2 flex flex-col gap-2">
+                <!-- Name -->
+                <div class="flex flex-col">
+                    <label for="input_client-form_name" class="pr-2 text-base">Name:</label>
+                    <input type="text" id="input_client-form_name" name="name" class="h-[2.25rem] p-2 border rounded-md text-base" required>
+                </div>
+                <!-- Business Name -->
+                <div class="flex flex-col">
+                    <label for="input_client-form_business-name" class="pr-2 text-base">Business Name:</label>
+                    <input type="text" id="input_client-form_business-name" name="business-name" class="h-[2.25rem] p-2 border rounded-md text-base" required>
+                </div>
+            </div>
+            <div class="mb-2 flex flex-col gap-2">
+                <!-- Street Address -->
+                <div class="flex flex-col">
+                    <label for="input_client-form_street-address" class="pr-2 text-base">Street Address:</label>
+                    <input type="text" id="input_client-form_street-address" name="street-address" class="h-[2.25rem] p-2 border rounded-md text-base" required>
+                </div>
+                <div class="flex flex-row gap-8 justify-between">
+                    <!-- City -->
+                    <div class="w-full flex flex-col">
+                        <label for="input_client-form_city" class="pr-2 text-base">City:</label>
+                        <input type="text" id="input_client-form_city" name="city" class="h-[2.25rem] p-2 border rounded-md text-base" required>
+                    </div>
+                    <!-- State -->
+                    <div class="w-24 flex flex-col">
+                        <label for="input_client-form_state" class="pr-2 text-base">State:</label>
+                        <input type="text" id="input_client-form_state" name="state" class="h-[2.25rem] p-2 border rounded-md text-base" required>
+                    </div>
+                    <!-- Zip Code -->
+                    <div class="w-40 flex flex-col">
+                        <label for="input_client-form_zip-code" class="pr-2 text-base">Zip Code:</label>
+                        <input type="text" id="input_client-form_zip-code" name="zip-code" class="h-[2.25rem] p-2 border rounded-md text-base" required>
+                    </div>
+                </div>
+            </div>
+            <div class="mb-4 flex flex-col gap-2">
+                <!-- Email -->
+                <div class="flex flex-col">
+                    <label for="input_client-form_email" class="pr-2 text-base">Email:</label>
+                    <input type="email" id="input_client-form_email" name="email" class="h-[2.25rem] p-2 border rounded-md text-base" required>
+                </div>
+                <!-- Phone -->
+                <div class="flex flex-col">
+                    <label for="input_client-form_phone" class="pr-2 text-base">Phone:</label>
+                    <input type="tel" id="input_client-form_phone" name="phone" class="h-[2.25rem] p-2 border rounded-md text-base" minlength="10" maxlength="14" placeholder="(562) 515-5567" required>
+                </div>
+            </div>
+            <!-- hidden input storing Client ID -->
+            <div hidden><input type="text" id="input_client-form_client-id" name="client-id"></div>
+            <!-- Form Submit Button -->
+            <div class="flex justify-end">
+                <button id="btn_submit-client-form" type="submit" class="h-[2.25rem] pl-4 pr-4 bg-{{ colorTheme }} rounded-md text-base font-semibold cursor-pointer"></button>
+            </div>
+        </form>
+    </dialog>
+
+    <!-- Remove Client Form Dialog -->
+    <dialog id="dialog_remove-client-form" class="w-96 m-auto p-4 flex flex-col bg-gray-50 rounded-lg" hidden>
+        <!-- Form Header -->
+        <div class="mb-4 flex flex-col gap-2 justify-between">
+            <h2 class="text-2xl font-bold">Remove Client</h2>
+            <p class="text-base">Are you sure you want to remove this client?</p>
+        </div>
+        <!-- Client Information -->
+        <div class="mb-4 flex flex-col">
+            <p id="p_remove-client-form_name-placeholder" class="pl-4"></p>
+            <p id="p_remove-client-form_business-name-placeholder" class="pl-4"></p>
+        </div>
+        <!-- Form -->
+        <form id="form-remove-client-form" action="/clients/remove_client" method="post">
+            <!-- hidden input storing Client ID -->
+            <input type="text" id="input_remove-client-form_client-id" name="client-id" hidden>
+            <div class="flex flex-row gap-4 justify-end">
+                <!-- Form Submit Button -->
+                <button type="submit" class="h-[2.25rem] pl-4 pr-4 bg-red-500 rounded-md text-base font-semibold cursor-pointer">Delete Client</button>
+                <!-- Cancel Button -->
+                <button id="btn_hide-remove-client-form" type="button" class="h-[2.25rem] pl-4 pr-4 bg-{{ colorTheme }} rounded-md text-base font-semibold cursor-pointer">Cancel</button>
+            </div>
+        </form>
+    </dialog>
+
+    <!-- Client Quote Profile Form Dialog -->
+    <dialog id="dialog_client-quote-profile-form" class="w-224 m-auto p-4 flex flex-col bg-gray-50 rounded-lg" hidden>
+        <!-- Form Header -->
+        <div class="mb-4 flex flex-row justify-between">
+            <h2 class="text-2xl font-bold">Client Quote Profile</h2>
+            <button id="btn_hide-client-quote-profile-form" class="cursor-pointer group">
+                <div class="form-icon-wrapper overflow-hidden flex-shrink-0">
+                    <span class="icon outline">{{ heroicon_outline("x-circle", width="1.875rem", height="1.875rem") }}</span>
+                    <span class="icon solid">{{ heroicon_solid("x-circle", width="1.875rem", height="1.875rem", color=clients_closeFormIconHoverColor) }}</span>
+                </div>
+            </button>
+        </div>
+        <!-- Client Information -->
+        <div class="mb-4 flex flex-col">
+            <p id="p_client-quote-profile-form_name-placeholder"></p>
+            <p id="p_client-quote-profile-form_business-name-placeholder"></p>
+            <p id="p_client-quote-profile-form_billing-address-1-placeholder"></p>
+            <p id="p_client-quote-profile-form_billing-address-2-placeholder"></p>
+        </div>
+        <!-- Form -->
+        <form id="form_client-quote-profile-form" method="post">
+            <!-- table of services for the client -->
+            <div class="relative w-full h-full mb-4 overflow-scroll flex flex-col bg-white shadow-md rounded-lg bg-clip-border">
+                <table class="w-full min-w-max table-auto text-left">
+                    <thead>
+                        <tr class="h-[2rem] bg-{{ colorTheme }} border-b">
+                            <th class="w-[25%] p-2">Service</th>
+                            <th class="w-[5%] p-2">Quantity</th>
+                            <th class="w-[25%] p-2">Per Unit</th>
+                            <th class="w-[20%] p-2">Unit Price</th>
+                            <th class="w-[20%] p-2">Total Price</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbody_client-quote-profile-services">
+                        <!-- rows added dynamically with JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+            <!-- Add Service Button -->
+            <button type="button" id="btn_add-client-service" class="h-[2.25rem] pl-4 pr-4 bg-{{ colorTheme }} rounded-md text-base font-semibold cursor-pointer">Add Service</button>
+            <!-- hidden inputs storing Client ID and Services Count -->
+            <input type="text" id="input_client-quote-profile-form_client-id" name="client-id" hidden>
+            <input type="text" id="input_client-quote-profile-form_services-count" name="services-count" value="0" hidden>
+            <div class="mt-4 flex flex-row gap-4 justify-end">
+                <!-- Form Submit Button - Save Client Quote Profile -->
+                <button id="btn_save-client-quote-profile" type="submit" class="h-[2.25rem] pl-4 pr-4 bg-{{ colorTheme }} rounded-md text-base font-semibold cursor-pointer">Save</button>
+                <!-- Form Submit Button - Send Quote -->
+                <button id="btn_send-quote" type="submit" class="h-[2.25rem] pl-4 pr-4 bg-{{ colorTheme }} rounded-md text-base font-semibold cursor-pointer">Send Quote</button>
+            </div>
+        </form>
+    </dialog>
+{% endblock %}
+
+{% block javascript %}
+    <script src="/static/js/clients.js"></script>
+{% endblock %}

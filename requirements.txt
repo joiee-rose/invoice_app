@@ -1,0 +1,7 @@
+"fastapi[standard]"
+fastapi-mail
+fastapi-tailwind
+jinja2
+heroicons[jinja]
+sqlmodel
+xhtml2pdf
