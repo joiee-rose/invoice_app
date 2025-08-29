@@ -12,7 +12,7 @@ from sqlmodel import SQLModel, Session
 
 from routers import clients, services, invoices, settings
 from database import sqlite_engine, get_session
-from models import Client, Service, ClientQuoteProfile, Invoice, AppSetting
+from models import Client, Service, ClientQuoteProfile, Quote, Invoice, AppSetting
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -28,6 +28,10 @@ async def lifespan(app: FastAPI):
 
     # Populate AppSettings table with default settings, if they do not exist already
     project_root_abs_dir_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    invoices_dir = os.path.join(project_root_abs_dir_path, "my_files", "my_invoices")
+    os.makedirs(invoices_dir, exist_ok=True)
+    quotes_dir   = os.path.join(project_root_abs_dir_path, "my_files", "my_quotes")
+    os.makedirs(quotes_dir, exist_ok=True)
     default_app_settings = [
         # 0000 series: General App Settings
         AppSetting(id="0000", category="general", setting_name="theme", setting_value="light"),
@@ -35,7 +39,8 @@ async def lifespan(app: FastAPI):
         # 1000 series: Client Settings
         # 2000 series: Service Settings
         # 3000 series: Invoice Settings
-        AppSetting(id="3000", category="invoices", setting_name="pdf-save-to-path", setting_value=project_root_abs_dir_path)
+        AppSetting(id="3000", category="invoices", setting_name="invoice-pdfs-save-to-path", setting_value=invoices_dir),
+        AppSetting(id="3001", category="invoices", setting_name="quote-pdfs-save-to-path", setting_value=quotes_dir),
     ]
 
     with Session(sqlite_engine) as session:

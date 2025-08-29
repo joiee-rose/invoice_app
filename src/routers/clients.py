@@ -10,8 +10,8 @@ from sqlmodel import Session, select
 
 import utils
 from database import get_session
-from models import Client, ClientQuoteProfile, AppSetting
-from services import ClientCRUD, ClientQuoteProfileCRUD, PDFServices, EmailServices
+from models import Client, ClientQuoteProfile, Quote, AppSetting
+from services import ClientCRUD, ClientQuoteProfileCRUD, QuoteCRUD, AppSettingCRUD, PDFServices, EmailServices
 
 # Create router for client-related endpoints
 router = APIRouter(prefix="/clients", tags=["clients"])
@@ -284,8 +284,20 @@ async def send_quote(
         grand_total += Decimal(form.get(f"total-price-{i}"))
     # Get the client from the database
     client = session.get(Client, client_id)
-    # TODO - Get the path to save invoice PDFs to from app settings
-    pdf_save_path = "../"
+    # Get the number of quotes existing for the client and generate a
+    # quote number for the quote based on that value and the client's unique id
+    num_quotes = utils.call_service_or_500(
+        QuoteCRUD.count_by_client_id,
+        client_id,
+        session
+    )
+    quote_no = f"{client_id}-{str(num_quotes + 1).zfill(4)}"
+    # Get the path to save quote PDFs to from app settings
+    pdf_save_path = utils.call_service_or_404(
+        AppSettingCRUD.get,
+        "3001",
+        session
+    )
 
     # Generate HTML source for the quote pdf
     html_source = utils.call_service_or_500(
@@ -293,36 +305,51 @@ async def send_quote(
         file_type="quote",
         client=client,
         invoice_no=None,
+        quote_no=quote_no,
         services=services,
         grand_total=grand_total
     )
     # Save the PDF
     pdf_status = utils.call_service_or_500(
         PDFServices.save_pdf,
+        file_type="quote",
+        client=client,
+        invoice_no=None,
+        quote_no=quote_no,
         html_source=html_source,
         pdf_save_path=pdf_save_path,
-        file_type="quote",
-        invoice_no=None,
-        client_name=client.name
     )
+
     # Send the email
     email_status = await utils.call_async_service_or_500(
         EmailServices.send_email,
-        subject="Quote Request",
+        subject="M&M Quote Request",
         recipients=[client.email],
         body=textwrap.dedent(f"""\
             Dear {client.name},
 
-            This is a quote :)))
+            M&M Concrete Designs is a fully insured and licensed contractor based.
         """),
         subtype="plain",
         attachments=[
             {
-                "file": f"../quote_{client.name.replace(" ", "_")}.pdf",
+                "file": f"{pdf_save_path}/m&m-quote_{client.name.replace(" ", "_")}_{quote_no}.pdf",
                 "mime_type": "application/pdf",
             }
         ]
     )
+
+    # Validate the new quote data
+    new_quote = utils.call_service_or_422(
+        QuoteCRUD.validate_data,
+        Quote(
+            client_id=client_id,
+            quote_no=quote_no,
+            pdf_html=html_source,
+        )
+    )
+    # Create the new quote in the database
+    create_status = utils.call_service_or_500(QuoteCRUD.create, new_quote, session)
     
     return RedirectResponse(url="/clients/", status_code=303)
 

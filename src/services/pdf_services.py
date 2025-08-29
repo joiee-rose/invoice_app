@@ -1,3 +1,4 @@
+import io
 from decimal import Decimal
 from typing import List, Dict, Any
 from datetime import datetime
@@ -12,9 +13,27 @@ class PDFServices:
         file_type: str,
         client: Client,
         invoice_no: str | None,
+        quote_no: str | None,
         services: List[Dict[str, Any]],
         grand_total: Decimal
     ) -> tuple[bool, str]:
+        """
+        Generates the HTML source used by xhtml2pdf to render the quote or
+        invoice PDF.
+
+        Parameters:
+        - file_type: str - The type of the file being generated (e.g., "invoice" or "quote").
+        - client: Client - The client for whom the invoice or quote is being generated.
+        - invoice_no: str | None - The invoice number (if applicable).
+        - quote_no: str | None - The quote number (if applicable).
+        - services: List[Dict[str, Any]] - A list of services included in the invoice or quote.
+        - grand_total: Decimal - The grand total amount for the invoice or quote.
+
+        Returns:
+        - tuple[bool, str]:
+            - bool - A success flag (true or false)
+            - str - The generated HTML source as a string (if bool is true), or an error message (if bool is false).
+        """
         try:
             table_body_rows = ""
             for service in services:
@@ -47,11 +66,11 @@ class PDFServices:
                         <table width="100%" style="border:none; margin-bottom:24px;">
                             <tr>
                                 <td style="text-align:left; font-size:12px;">{client.name}</td>
-                                {f"""<td style="text-align:right; font-size:12px;">Invoice No.: {invoice_no}</td>""" if file_type == "invoice" else "<td></td>"}
+                                {f"""<td style="text-align:right; font-size:12px;">Invoice No.: {invoice_no}</td>""" if file_type == "invoice" else f"""<td style="text-align:right; font-size:12px;">Quote No.: {quote_no}</td>"""}
                             </tr>
                             <tr>
                                 <td style="text-align:left; font-size:12px;">{client.business_name}</td>
-                                {f"""<td style="text-align:right; font-size:12px;">Issue Date: {datetime.now().strftime("%m/%d/%Y")}</td>""" if file_type == "invoice" else "<td></td>"}
+                                <td style="text-align:right; font-size:12px;">Issue Date: {datetime.now().strftime("%m/%d/%Y")}</td>
                             </tr>
                             <tr><td style="font-size:12px;">{client.street_address}</td></tr>
                             <tr><td style="font-size:12px;">{client.city + ", " + client.state + " " + client.zip_code}</td></tr>
@@ -91,19 +110,45 @@ class PDFServices:
 
     @staticmethod
     def save_pdf(
+        file_type: str,
+        client: Client,
+        invoice_no: str | None,
+        quote_no: str | None,
         html_source: str,
         pdf_save_path: str,
-        file_type: str,
-        invoice_no: str | None,
-        client_name: str | None
     ) -> tuple[bool, str]:
-        filename = f"invoice_{invoice_no}" if file_type == "invoice" else f"quote_{client_name.replace(" ", "_")}"
+        """
+        Creates a PDF from a generated HTML source and saves 
+        the generated PDF to the specified path.
+
+        Parameters:
+        - file_type: str - The type of the file being generated (e.g., "invoice" or "quote").
+        - client: Client - The client for whom the invoice or quote is being generated.
+        - invoice_no: str | None - The invoice number (if applicable).
+        - quote_no: str | None - The quote number (if applicable).
+        - html_source: str - The HTML source to be converted to PDF.
+        - pdf_save_path: str - The path where the generated PDF should be saved.
+
+        Returns:
+        - tuple[bool, str]:
+            - bool - A success flag (true or false)
+            - str - A success message (if bool is true), or an error message (if bool is false).
+        """
+        if file_type == "invoice":
+            # ex: m&m-invoice_Joie-Rose_Stangle_1-0001
+            filename = f"m&m-invoice_{client.name.replace(" ", "_")}_{invoice_no}"
+        else:
+            # ex: m&m-quote_Joie-Rose_Stangle_1-0001
+            filename = f"m&m-quote_{client.name.replace(" ", "_")}_{quote_no}"
 
         with open(f"{pdf_save_path}/{filename}.pdf", "w+b") as result_file:
-            pisa_status = pisa.pisaDocument(src=html_source, dest=result_file, log_warn=True)
+            pisa_status = pisa.pisaDocument(
+                src=html_source,
+                dest=result_file,
+                log_warn=True
+            )
         
             if pisa_status.err:
                 # TODO - log error
                 return False, "Failed to generate PDF."
-            
             return True, "PDF generated successfully."
