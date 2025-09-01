@@ -143,21 +143,17 @@ def download_invoice(
 
     return RedirectResponse(url="/quotes_and_invoices/", status_code=303)
 
-@router.post("/send_invoice")
-async def send_invoice(
+@router.post("/send_quotes")
+async def send_quotes(
     request: Request,
-    session: SessionDependency,
-    client_id: int = Form(..., alias="client-id"),
-    services_count: int = Form(..., alias="services-count")
+    session: SessionDependency
 ):
     """
-    Send an invoice as a PDF to the client via email.
+    Send quotes as a PDFs to a list of clients via their email.
 
     Parameters:
     - request: Request - The incoming HTTP request.
     - session: SessionDependency - A SQLModel session dependency for database access.
-    - client_id: int - The unique ID of the client.
-    - services_count: int - The number of services in the invoice.
 
     Returns:
     - RedirectResponse: If successful, a redirect response to the clients page with HTTP status code 303 (SEE OTHER).
@@ -166,87 +162,212 @@ async def send_invoice(
     - HTTPException:
         - 500 (INTERNAL SERVER ERROR) for unexpected errors
     """
-    # Extract the list of services from the form
+    # Extract the list of client ids from the form
     form = await request.form()
-    services = []
-    grand_total = 0
-    for i in range(services_count):
-        services.append({
-            "service_id": form.get(f"service-{i}"),
-            "service_name": form.get(f"service-name-{i}"),
-            "quantity": form.get(f"quantity-{i}"),
-            "per_unit": form.get(f"per-unit-{i}"),
-            "unit_price": form.get(f"unit-price-{i}"),
-            "total_price": form.get(f"total-price-{i}")
-        })
-        grand_total += Decimal(form.get(f"total-price-{i}"))
-    # Get the client from the database
-    client = session.get(Client, client_id)
-    # Get the number of invoices existing for the client & generate an invoice
-    # number for the invoice based on that value and the client's unique id
-    num_invoices = utils.call_service_or_500(
-        InvoiceCRUD.count_by_client_id,
-        client_id,
-        session
-    )
-    invoice_no = f"{client_id}-{str(num_invoices + 1).zfill(4)}"
-    # Get the path to save invoice PDFs to from app settings
-    pdf_save_path = utils.call_service_or_404(
-        AppSettingCRUD.get,
-        "3000",
-        session
-    )
+    client_ids = form.get("client-ids").split(";")
 
-    # Generate HTML source for the invoice pdf
-    html_source = utils.call_service_or_500(
-        PDFServices.generate_html_source,
-        file_type="invoice",
-        client=client,
-        invoice_no=invoice_no,
-        quote_no=None,
-        services=services,
-        grand_total=grand_total
-    )
-    # Save the PDF
-    pdf_status = utils.call_service_or_500(
-        file_type="invoice",
-        client=client,
-        invoice_no=invoice_no,
-        quote_no=None,
-        html_source=html_source,
-        pdf_save_path=pdf_save_path,
-    )
+    for client_id in client_ids:
+        services_count = int(form.get(f"services-count_client-{client_id}"))
+        services = []
+        grand_total = 0
 
-    # Send the email
-    email_status = await utils.call_async_service_or_500(
-        EmailServices.send_email,
-        subject=f"M&M Invoice {invoice_no}",
-        recipients=[client.email],
-        body=textwrap.dedent(f"""\
-            Dear {client.name},
+        # Extract the list of services for each client from the form
+        for i in range(services_count):
+            services.append({
+                "service_id": form.get(f"service-{i}_client-{client_id}"),
+                "service_name": form.get(f"service-name-{i}_client-{client_id}"),
+                "quantity": form.get(f"quantity-{i}_client-{client_id}"),
+                "per_unit": form.get(f"per-unit-{i}_client-{client_id}"),
+                "unit_price": form.get(f"unit-price-{i}_client-{client_id}"),
+                "total_price": form.get(f"total-price-{i}_client-{client_id}")
+            })
+            grand_total += Decimal(form.get(f"total-price-{i}_client-{client_id}"))
 
-            (some text about the invoice)
-        """),
-        subtype="plain",
-        attachments=[
-            {
-                "file": f"{pdf_save_path}/m&m-invoice_{client.name.replace(" ", "_")}_{invoice_no}.pdf",
-                "mime_type": "application/pdf",
-            }
-        ]
-    )
+        # Get the client from the database
+        client = session.get(Client, client_id)
 
-    # Validate the new invoice data
-    new_invoice = utils.call_service_or_422(
-        InvoiceCRUD.validate_data,
-        Invoice(
-            client_id=client_id,
-            invoice_no=invoice_no,
-            pdf_html=html_source
+        # Get the number of quotes existing for the client and generate a
+        # quote number for the quote based on that value and the client's unique id
+        num_quotes = utils.call_service_or_500(
+            QuoteCRUD.count_by_client_id,
+            client_id,
+            session
         )
-    )
+        quote_no = f"{client_id}-{str(num_quotes + 1).zfill(4)}"
 
-    # Create the new invoice in the database
-    create_status = utils.call_service_or_500(InvoiceCRUD.create, new_invoice, session)
+        # Get the path to save quote PDFs to from app settings
+        pdf_save_path = utils.call_service_or_404(
+            AppSettingCRUD.get,
+            "3001",
+            session
+        )
+
+        # Generate HTML source for the quote pdf
+        html_source = utils.call_service_or_500(
+            PDFServices.generate_html_source,
+            file_type="quote",
+            client=client,
+            invoice_no=None,
+            quote_no=quote_no,
+            services=services,
+            grand_total=grand_total
+        )
+
+        # Save the PDF
+        pdf_status = utils.call_service_or_500(
+            PDFServices.save_pdf,
+            file_type="quote",
+            client=client,
+            invoice_no=None,
+            quote_no=quote_no,
+            html_source=html_source,
+            pdf_save_path=pdf_save_path,
+        )
+
+        # Send the email
+        email_status = await utils.call_async_service_or_500(
+            EmailServices.send_email,
+            subject="M&M Quote Request",
+            recipients=[client.email],
+            body=textwrap.dedent(f"""\
+                Dear {client.name},
+
+                M&M Concrete Designs is a fully insured and licensed contractor based.
+            """),
+            subtype="plain",
+            attachments=[
+                {
+                    "file": f"{pdf_save_path}/m&m-quote_{client.name.replace(" ", "_")}_{quote_no}.pdf",
+                    "mime_type": "application/pdf",
+                }
+            ]
+        )
+
+        # Validate the new quote data
+        new_quote = utils.call_service_or_422(
+            QuoteCRUD.validate_data,
+            Quote(
+                client_id=client_id,
+                quote_no=quote_no,
+                pdf_html=html_source,
+            )
+        )
+
+        # Create the new quote in the database
+        create_status = utils.call_service_or_500(QuoteCRUD.create, new_quote, session)
+
+    return RedirectResponse(url="/quotes_and_invoices/", status_code=303)
+
+@router.post("/send_invoices")
+async def send_invoices(
+    request: Request,
+    session: SessionDependency
+):
+    """
+    Send invoices as a PDFs to a list of clients via their email.
+
+    Parameters:
+    - request: Request - The incoming HTTP request.
+    - session: SessionDependency - A SQLModel session dependency for database access.
+
+    Returns:
+    - RedirectResponse: If successful, a redirect response to the clients page with HTTP status code 303 (SEE OTHER).
+
+    Raises:
+    - HTTPException:
+        - 500 (INTERNAL SERVER ERROR) for unexpected errors
+    """
+    # Extract the list of client ids from the form
+    form = await request.form()
+    client_ids = form.get("client-ids").split(";")
+    for client_id in client_ids:
+        services_count = int(form.get(f"services-count_client-{client_id}"))
+        services = []
+        grand_total = 0
+
+        # Extract the list of services for each client from the form
+        for i in range(services_count):
+            services.append({
+                "service_id": form.get(f"service-{i}_client-{client_id}"),
+                "service_name": form.get(f"service-name-{i}_client-{client_id}"),
+                "quantity": form.get(f"quantity-{i}_client-{client_id}"),
+                "per_unit": form.get(f"per-unit-{i}_client-{client_id}"),
+                "unit_price": form.get(f"unit-price-{i}_client-{client_id}"),
+                "total_price": form.get(f"total-price-{i}_client-{client_id}")
+            })
+            grand_total += Decimal(form.get(f"total-price-{i}_client-{client_id}"))
+
+        # Get the client from the database
+        client = session.get(Client, client_id)
+
+        # Get the number of invoices existing for the client & generate an invoice
+        # number for the invoice based on that value and the client's unique id
+        num_invoices = utils.call_service_or_500(
+            InvoiceCRUD.count_by_client_id,
+            client_id,
+            session
+        )
+        invoice_no = f"{client_id}-{str(num_invoices + 1).zfill(4)}"
+
+        # Get the path to save invoice PDFs to from app settings
+        pdf_save_path = utils.call_service_or_404(
+            AppSettingCRUD.get,
+            "3000",
+            session
+        )
+
+        # Generate HTML source for the invoice pdf
+        html_source = utils.call_service_or_500(
+            PDFServices.generate_html_source,
+            file_type="invoice",
+            client=client,
+            invoice_no=invoice_no,
+            quote_no=None,
+            services=services,
+            grand_total=grand_total
+        )
+        
+        # Save the PDF
+        pdf_status = utils.call_service_or_500(
+            PDFServices.save_pdf,
+            file_type="invoice",
+            client=client,
+            invoice_no=invoice_no,
+            quote_no=None,
+            html_source=html_source,
+            pdf_save_path=pdf_save_path,
+        )
+
+        # Send the email
+        email_status = await utils.call_async_service_or_500(
+            EmailServices.send_email,
+            subject=f"M&M Invoice {invoice_no}",
+            recipients=[client.email],
+            body=textwrap.dedent(f"""\
+                Dear {client.name},
+
+                (some text about the invoice)
+            """),
+            subtype="plain",
+            attachments=[
+                {
+                    "file": f"{pdf_save_path}/m&m-invoice_{client.name.replace(" ", "_")}_{invoice_no}.pdf",
+                    "mime_type": "application/pdf",
+                }
+            ]
+        )
+
+        # Validate the new invoice data
+        new_invoice = utils.call_service_or_422(
+            InvoiceCRUD.validate_data,
+            Invoice(
+                client_id=client_id,
+                invoice_no=invoice_no,
+                pdf_html=html_source
+            )
+        )
+
+        # Create the new invoice in the database
+        create_status = utils.call_service_or_500(InvoiceCRUD.create, new_invoice, session)
 
     return RedirectResponse(url="/quotes_and_invoices/", status_code=303)

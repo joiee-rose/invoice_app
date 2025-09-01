@@ -282,8 +282,10 @@ async def send_quote(
             "total_price": form.get(f"total-price-{i}")
         })
         grand_total += Decimal(form.get(f"total-price-{i}"))
+
     # Get the client from the database
     client = session.get(Client, client_id)
+
     # Get the number of quotes existing for the client and generate a
     # quote number for the quote based on that value and the client's unique id
     num_quotes = utils.call_service_or_500(
@@ -292,6 +294,7 @@ async def send_quote(
         session
     )
     quote_no = f"{client_id}-{str(num_quotes + 1).zfill(4)}"
+
     # Get the path to save quote PDFs to from app settings
     pdf_save_path = utils.call_service_or_404(
         AppSettingCRUD.get,
@@ -309,6 +312,7 @@ async def send_quote(
         services=services,
         grand_total=grand_total
     )
+
     # Save the PDF
     pdf_status = utils.call_service_or_500(
         PDFServices.save_pdf,
@@ -348,6 +352,7 @@ async def send_quote(
             pdf_html=html_source,
         )
     )
+    
     # Create the new quote in the database
     create_status = utils.call_service_or_500(QuoteCRUD.create, new_quote, session)
     

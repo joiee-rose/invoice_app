@@ -1,6 +1,7 @@
 import os
 from typing import Annotated
 from contextlib import asynccontextmanager
+from datetime import datetime
 
 from fastapi import FastAPI, Depends, Request
 from fastapi.responses import HTMLResponse
@@ -38,9 +39,9 @@ async def lifespan(app: FastAPI):
         AppSetting(id="0001", category="general", setting_name="color-theme", setting_value="blue-400"),
         # 1000 series: Client Settings
         # 2000 series: Service Settings
-        # 3000 series: Invoice Settings
-        AppSetting(id="3000", category="invoices", setting_name="invoice-pdfs-save-to-path", setting_value=invoices_dir),
-        AppSetting(id="3001", category="invoices", setting_name="quote-pdfs-save-to-path", setting_value=quotes_dir),
+        # 3000 series: Quotes & Invoices Settings
+        AppSetting(id="3000", category="quotes_invoices", setting_name="invoice-pdfs-save-to-path", setting_value=invoices_dir),
+        AppSetting(id="3001", category="quotes_invoices", setting_name="quote-pdfs-save-to-path", setting_value=quotes_dir),
     ]
 
     with Session(sqlite_engine) as session:
@@ -97,8 +98,18 @@ async def render_dashboard_page(
     """
     theme = session.get(AppSetting, "0000").setting_value
     colorTheme = session.get(AppSetting, "0001").setting_value
+
+    # Create greeting string based on the current time
+    now = datetime.now()
+    if 0 <= now.hour < 12:
+        greeting = "Good morning!"
+    elif 12 <= now.hour < 18:
+        greeting = "Good afternoon!"
+    else:
+        greeting = "Good evening!"
+
     return templates.TemplateResponse(
         request=request,
         name="dashboard.html",
-        context={"theme": theme, "colorTheme": colorTheme}
+        context={"theme": theme, "colorTheme": colorTheme, "greeting": greeting}
     )

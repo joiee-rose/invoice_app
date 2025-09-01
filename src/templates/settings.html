@@ -56,14 +56,23 @@
                 </div>
             </div>
 
-            <!-- Invoices -->
+            <!-- Quotes & Invoices -->
             <div class="mb-4 flex flex-col gap-2">
-                <h2 class="mb-2 text-2xl font-bold">Invoices</h2>
-                <!-- Save PDFs To (PDF Save To Path) -->
+                <h2 class="mb-2 text-2xl font-bold">Quotes & Invoices</h2>
+                <!-- Save Quote PDFs To (PDF Save To Path) -->
+                <div class="mb-2 flex flex-row items-center">
+                    {% for app_setting in app_settings %}
+                        {% if app_setting.id == "3001" %}
+                            <p class="pr-2">Save Quote PDFs To:</p>
+                            <input type="text" id="{{ app_setting.id }}" name="{{ app_setting.id }}" class="h-[2.25rem] flex-1 p-2 border rounded-md text-base" value="{{ app_setting.setting_value}}">
+                        {% endif %}
+                    {% endfor %}
+                </div>
+                <!-- Save Invoice PDFs To (PDF Save To Path) -->
                 <div class="flex flex-row items-center">
                     {% for app_setting in app_settings %}
                         {% if app_setting.id == "3000" %}
-                            <p class="pr-2">Save PDFs To:</p>
+                            <p class="pr-2">Save Invoice PDFs To:</p>
                             <input type="text" id="{{ app_setting.id }}" name="{{ app_setting.id }}" class="h-[2.25rem] flex-1 p-2 border rounded-md text-base" value="{{ app_setting.setting_value}}">
                         {% endif %}
                     {% endfor %}
