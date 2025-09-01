@@ -3,7 +3,7 @@ document.addEventListener("DOMContentLoaded", function() {
     const clientFormDialog = document.getElementById("dialog_client-form");
     const clientForm = document.getElementById("form_client-form");
 
-    // Click event listener to open the "Add New Client" form
+    // Open the "Add New Client" form (click event listener)
     document.getElementById("btn_show-new-client-form").addEventListener("click", () => {
         // Set form header, button text, and form action
         document.getElementById("h2_client-form-header").innerText = "Create New Client";
@@ -13,7 +13,7 @@ document.addEventListener("DOMContentLoaded", function() {
         openFormDialog(clientFormDialog);
     });
 
-    // Click event listener to open the "Edit Client" form
+    // Open the "Edit Client" form (click event listener)
     document.querySelectorAll('[id^="btn_show-edit-client-form-"]').forEach((btn) => {
         btn.addEventListener("click", () => {
             // Set form header, button text, and form action
@@ -36,7 +36,46 @@ document.addEventListener("DOMContentLoaded", function() {
         });
     });
 
-    // Click event listener to close the client form
+    // Submit the Client Form (submit event listener)
+    clientForm.addEventListener("submit", async(e) => {
+        e.preventDefault();
+        const formData = new FormData(clientForm);
+
+        try {
+            const response = await fetch(clientForm.action, {
+                method: "POST",
+                body: formData,
+            });
+
+            if (response.ok) {
+                data = await response.json();
+                // Close the form dialog
+                closeFormDialog(clientFormDialog);
+                // Either add the new client to the all clients table or update the existing client in the all clients table
+
+                // Show success toast notification
+                showToast("success", data.detail);
+            } else {
+                data = await response.json();
+                if (response.status == 422) {
+                    showToast("error", data.detail || "Unprocessable Entity Error");
+                }
+                else if(response.status == 404) {
+                    closeFormDialog(serviceFormDialog);
+                    showToast("error", data.detail || "Client Not Found");
+                }
+                else if (response.status == 500) {
+                    closeFormDialog(serviceFormDialog);
+                    showToast("error", data.detail || "Internal Server Error");
+                }
+            }
+        } catch (error) {
+            closeFormDialog(clientFormDialog);
+            showToast("error", error.message || "Unexpected Error");
+        }
+    });
+
+    // Close the Client Form (click event listener)
     document.getElementById("btn_hide-client-form").addEventListener("click", () => {
         closeFormDialog(clientFormDialog);
     });
@@ -44,8 +83,9 @@ document.addEventListener("DOMContentLoaded", function() {
 
     //#region REMOVE CLIENT FORM
     const removeClientFormDialog = document.getElementById("dialog_remove-client-form");
+    const removeClientForm = document.getElementById("form_remove-client-form");
 
-    // Click event listener to open the remove client form
+    // Open the "Remove Client" form (click event listener)
     document.querySelectorAll('[id^="btn_show-remove-client-form-"]').forEach((btn) => {
         btn.addEventListener("click", () => {
             // Populate the form with the client to remove's data
@@ -57,12 +97,41 @@ document.addEventListener("DOMContentLoaded", function() {
         });
     });
     
-    // Click event listener to close the remove client form
+    // Close the "Remove Client" form (click event listener)
     document.getElementById("btn_hide-remove-client-form").addEventListener("click", () => {
         closeFormDialog(removeClientFormDialog);
     });
 
-    // Format phone number as (XXX) XXX-XXXX when focus is lost
+    // Submit the "Remove Client" form (submit event listener)
+    removeClientForm.addEventListener("submit", async(e) => {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+
+        try {
+            const response = await fetch(removeClientForm.action, {
+                method: "POST",
+                body: formData,
+            });
+
+            if (response.ok) {
+                data = await response.json();
+                // Close the form dialog, REMOVE THE CLIENT from the all clients table, and show a success toast notification
+                closeFormDialog(removeClientFormDialog);
+                showToast("success", data.detail);
+            } else {
+                data = await response.json();
+                if (response.status == 500) {
+                    closeFormDialog(removeClientFormDialog);
+                    showToast("error", data.detail || "Internal Server Error");
+                }
+            }
+        } catch (error) {
+            closeFormDialog(removeClientFormDialog);
+            showToast("error", error.message || "Unexpected Error");
+        }
+    });
+
+    // Format phone number as (XXX) XXX-XXXX (blur/focus lost event listener)
     document.getElementById("input_client-form_phone").addEventListener("blur", function() {
         (this.value) && (this.value = formatPhoneNumber(this.value)); // see Helper Functions
     });
@@ -247,17 +316,51 @@ document.addEventListener("DOMContentLoaded", function() {
     //#endregion CLIENT PROFILE FORM
 
     //#region HELPER FUNCTIONS
+    /**
+     * Open a form dialog.
+     * @param {HTMLDialogElement} formDialog - The form dialog to open.
+     * @returns {void}
+     */
     function openFormDialog(formDialog) {
         formDialog.removeAttribute("hidden");
         formDialog.showModal();
     }
 
+    /**
+     * Close a form dialog and reset its input fields.
+     * @param {HTMLDialogElement} formDialog - The form dialog to close.
+     * @returns {void}
+     */
     function closeFormDialog(formDialog) {
         Array.from(formDialog.getElementsByTagName("input")).forEach((input) => {
             input.value = "";
         });
         formDialog.setAttribute("hidden", "hidden");
         formDialog.close();
+    }
+
+    /**
+     * Show a toast notification.
+     * @param {string} toastType - The type of toast notification to show (options: "success", "error").
+     * @param {string} message - The message to display in the toast notification.
+     * @returns {void}
+     */
+    function showToast(toastType, message) {
+        const toast = document.getElementById(`toast-${toastType}`);
+        const toastText = document.getElementById(`p_toast-${toastType}`);
+    
+        // Set the toast notification message text
+        toastText.textContent = message;
+
+        // Show the toast (slide in)
+        toast.classList.remove("show", "hide");
+        toast.classList.add("show");
+    
+        // Wait 3s (plus transition time), then hide the toast (slide out)
+        setTimeout(() => {
+            toast.classList.remove("show");
+            toast.classList.add("hide");
+        }, 3800);
     }
 
     function formatPhoneNumber(digits) {

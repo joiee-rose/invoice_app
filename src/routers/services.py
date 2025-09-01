@@ -35,13 +35,11 @@ def render_services_page(
     Renders the services page.
 
     Parameters:
-    - request: Request
-        - The incoming HTTP request object.
-    - session: SessionDependency
-        - A SQLModel session dependency for database access.
+    - request: The incoming HTTP request object.
+    - session: A SQLModel session dependency for database access.
 
     Returns:
-    - HTMLResponse: The rendered HTML content of the services page.
+    - `HTMLResponse`: The rendered HTML content of the services page.
     """
     return templates.TemplateResponse(
         request=request,
@@ -102,10 +100,10 @@ def add_service(
                 "id": service.id,
                 "name": service.name,
                 "description": service.description,
-                "unit_price": str(service.unit_price)
-            }
+                "unit_price": str(service.unit_price),
+            },
         },
-        status_code=200
+        status_code=200,
     )
 
 @router.post("/edit_service")
@@ -168,10 +166,10 @@ def edit_service(
                 "id": updated_service.id,
                 "name": updated_service.name,
                 "description": updated_service.description,
-                "unit_price": str(updated_service.unit_price)
-            }
+                "unit_price": str(updated_service.unit_price),
+            },
         },
-        status_code=200
+        status_code=200,
     )
 
 @router.post("/remove_service")
@@ -207,7 +205,7 @@ def remove_service(
                 "id": service.id,
             }
         },
-        status_code=200
+        status_code=200,
     )
 
 @router.get("/api/all")

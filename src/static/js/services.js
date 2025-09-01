@@ -13,10 +13,27 @@ document.addEventListener("DOMContentLoaded", function() {
         openFormDialog(serviceFormDialog);
     });
 
+    // Open the "Edit Service" form (click event listener)
+    document.querySelectorAll('[id^="btn_show-edit-service-form-"]').forEach((btn) => {
+        btn.addEventListener("click", () => {
+            // Set form header, button text, and form action
+            document.getElementById("h2_service-form-header").innerText = "Edit Service Details";
+            document.getElementById("btn_submit-service-form").innerText = "Update";
+            serviceForm.action = "/services/edit_service";
+
+            // Populate form with the service to edit's data
+            document.getElementById("input_service-form_name").value = btn.dataset.name;
+            document.getElementById("input_service-form_unit-price").value = Number(btn.dataset.unitPrice).toFixed(2);
+            document.getElementById("textarea_service-form_description").value = btn.dataset.description;
+            document.getElementById("input_service-form_service-id").value = btn.dataset.serviceId;
+
+            openFormDialog(serviceFormDialog);
+        });
+    });
+
     // Submit the Service Form (submit event listener)
     serviceForm.addEventListener("submit", async (e) => {
         e.preventDefault();
-    
         const formData = new FormData(e.target);
     
         try {
@@ -38,7 +55,6 @@ document.addEventListener("DOMContentLoaded", function() {
                 }
                 // Show success toast notification
                 showToast("success", data.detail);
-                console.log(data.detail);
             } else {
                 data = await response.json();
                 if (response.status == 422) {
@@ -52,31 +68,11 @@ document.addEventListener("DOMContentLoaded", function() {
                     closeFormDialog(serviceFormDialog);
                     showToast("error", data.detail || "Internal Server Error");
                 }
-                console.log(data.detail);
             }
         } catch (error) {
             closeFormDialog(serviceFormDialog);
             showToast("error", error.message || "Unexpected Error");
-            console.log(error.message);
         }
-    });
-
-    // Open the "Edit Service" form (click event listener)
-    document.querySelectorAll('[id^="btn_show-edit-service-form-"]').forEach((btn) => {
-        btn.addEventListener("click", () => {
-            // Set form header, button text, and form action
-            document.getElementById("h2_service-form-header").innerText = "Edit Service Details";
-            document.getElementById("btn_submit-service-form").innerText = "Update";
-            serviceForm.action = "/services/edit_service";
-
-            // Populate form with the service to edit's data
-            document.getElementById("input_service-form_name").value = btn.dataset.name;
-            document.getElementById("input_service-form_unit-price").value = Number(btn.dataset.unitPrice).toFixed(2);
-            document.getElementById("textarea_service-form_description").value = btn.dataset.description;
-            document.getElementById("input_service-form_service-id").value = btn.dataset.serviceId;
-
-            openFormDialog(serviceFormDialog);
-        });
     });
 
     // Close the Service Form (click event listener)
@@ -85,8 +81,7 @@ document.addEventListener("DOMContentLoaded", function() {
     });
 
     // Validate the Service Form's Unit Price Input (blur/focus lost event listener)
-    // If input is NaN, show custom validation message.
-    // Otherwise, format input value to 2 decimal places.
+    // If input is NaN, show custom validation message. Otherwise, format input value to 2 decimal places.
     document.getElementById("input_service-form_unit-price").addEventListener("blur", function() {
         const value = this.value.trim();
     
@@ -121,10 +116,14 @@ document.addEventListener("DOMContentLoaded", function() {
         })
     });
 
+    // Close the "Remove Service" Form (click event listener)
+    document.getElementById("btn_hide-remove-service-form").addEventListener("click", () => {
+        closeFormDialog(removeServiceFormDialog);
+    });
+
     // Submit the "Remove Service" form (submit event listener)
     removeServiceForm.addEventListener("submit", async (e) => {
         e.preventDefault();
-    
         const formData = new FormData(e.target);
     
         try {
@@ -150,11 +149,6 @@ document.addEventListener("DOMContentLoaded", function() {
             closeFormDialog(removeServiceFormDialog);
             showToast("error", error.message || "Unexpected Error");
         }
-    });
-
-    // Close the "Remove Service" Form (click event listener)
-    document.getElementById("btn_hide-remove-service-form").addEventListener("click", () => {
-        closeFormDialog(removeServiceFormDialog);
     });
     //#endregion REMOVE SERVICE FORM
 

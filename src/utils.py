@@ -10,13 +10,13 @@ def call_service_or_500(service_func, *args, **kwargs):
     return message, data
 
 async def call_async_service_or_500(service_func, *args, **kwargs):
-    success, result = await service_func(*args, **kwargs)
+    success, message, data = await service_func(*args, **kwargs)
     if not success:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=result
+            detail=message
         )
-    return result
+    return message, data
 
 def call_service_or_422(service_func, *args, **kwargs):
     success, message, data = service_func(*args, **kwargs)

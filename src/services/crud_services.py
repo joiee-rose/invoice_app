@@ -11,58 +11,76 @@ SessionDependency = Annotated[Session, Depends(get_session)]
 
 class ClientCRUD:
     @staticmethod
-    def validate_data(data: Client) -> tuple[bool, str]:
+    def validate_data(data: Client) -> tuple[bool, str, Client | None]:
         try:
             Client.model_validate(data)
-            return True, data
+            return True, "Validated fields.", data
         except Exception as e:
-            return False, str(e)
+            return False, str(e), None
         
     @staticmethod
-    def create(data: Client, session: Session) -> tuple[bool, str]:
-        is_valid, message = ClientCRUD.validate_data(data)
+    def create(
+        data: Client,
+        session: Session
+    ) -> tuple[bool, str, Client | None]:
+        is_valid, message, client = ClientCRUD.validate_data(data)
         if not is_valid:
-            return False, message
+            return False, message, None
         
         session.add(data)
         session.commit()
-        return True, "Client created successfully."
+        session.refresh(data)
+
+        return True, "Client created successfully.", client
     
     @staticmethod
-    def get(id: int, session: Session) -> tuple[bool, Client | str]:
-        client = session.get(Client, id)
-        return (False, "Client not found.") if not client else (True, client)
-
-    @staticmethod
-    def update(client: Client, data: Client, session: Session) -> tuple[bool, str]:
-        client.name = data.name
-        client.business_name = data.business_name
-        client.street_address = data.street_address
-        client.city = data.city
-        client.state = data.state
-        client.zip_code = data.zip_code
-        client.email = data.email
-        client.phone = data.phone
-
-        session.add(client)
-        session.commit()
-        return True, "Client updated successfully."
-
-    @staticmethod
-    def delete(id: int, session: Session) -> tuple[bool, str]:
+    def get(
+        id: int,
+        session: Session
+    ) -> tuple[bool, str, Client | None]:
         client = session.get(Client, id)
         if not client:
-            return False, "Client not found."
+            return False, "Client not found.", None
+        return True, "Client found.", client
+
+    @staticmethod
+    def update(
+        client: Client,
+        data: Client,
+        session: Session
+    ) -> tuple[bool, str, Client | None]:
+        try:
+            client.name = data.name
+            client.business_name = data.business_name
+            client.street_address = data.street_address
+            client.city = data.city
+            client.state = data.state
+            client.zip_code = data.zip_code
+            client.email = data.email
+            client.phone = data.phone
+
+            session.add(client)
+            session.commit()
+            session.refresh(client)
+
+            return True, "Client updated successfully.", client
+        except Exception as e:
+            return False, str(e), None
+
+    @staticmethod
+    def delete(id: int, session: Session) -> tuple[bool, str, Client | None]:
+        client = session.get(Client, id)
+        if not client:
+            return False, "Client not found.", None
 
         session.delete(client)
         session.commit()
-        return True, "Client deleted successfully."
+
+        return True, "Client deleted successfully.", client
 
 class ServiceCRUD:
     @staticmethod
-    def validate_data(
-        data: Service
-    ) -> tuple[bool, str, Service | None]:
+    def validate_data(data: Service) -> tuple[bool, str, Service | None]:
         try:
             Service.model_validate(data)
             return True, "Validated fields.", data
@@ -114,7 +132,7 @@ class ServiceCRUD:
             return False, str(e), None
 
     @staticmethod
-    def delete(id: int, session: Session) -> tuple[bool, str, Service | None]:
+    def delete(id: int, session: Session ) -> tuple[bool, str, Service | None]:
         service = session.get(Service, id)
         if not service:
             return False, "Service not found.", None

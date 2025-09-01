@@ -3,25 +3,30 @@ from typing import Annotated
 from decimal import Decimal
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Request, status
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
-from heroicons.jinja import heroicon_micro, heroicon_mini, heroicon_outline, heroicon_solid
+from heroicons.jinja import heroicon_outline, heroicon_solid
 from sqlmodel import Session, select
 
 import utils
 from database import get_session
 from models import Client, ClientQuoteProfile, Quote, AppSetting
-from services import ClientCRUD, ClientQuoteProfileCRUD, QuoteCRUD, AppSettingCRUD, PDFServices, EmailServices
+from services import (
+    ClientCRUD,
+    ClientQuoteProfileCRUD,
+    QuoteCRUD,
+    AppSettingCRUD,
+    PDFServices,
+    EmailServices
+)
 
 # Create router for client-related endpoints
 router = APIRouter(prefix="/clients", tags=["clients"])
 
-# Create Jinja2 templates object for rendering HTML from the templates directory
+# Create Jinja2 templates object for rendering HTML from the templates
 templates = Jinja2Templates(directory="./templates")
 templates.env.globals.update(
     {
-        "heroicon_micro": heroicon_micro,
-        "heroicon_mini": heroicon_mini,
         "heroicon_outline": heroicon_outline,
         "heroicon_solid": heroicon_solid,
     }
@@ -38,23 +43,24 @@ def render_clients_page(
     Renders the clients page.
 
     Parameters:
-    - request: Request - The incoming HTTP request object.
-    - session: SessionDependency - A SQLModel session dependency for database access.
+    - request: The incoming HTTP request object.
+    - session: A SQLModel session dependency for database access.
 
     Returns:
-    - HTMLResponse: If successful, the HTML content of the clients page in the body of the response, with HTTP status code 200 (OK).
+    - `HTMLResponse`: The rendered HTML content of the clients page.
     """
-    all_clients = session.exec(select(Client)).all()
-    theme = session.get(AppSetting, "0000").setting_value
-    colorTheme = session.get(AppSetting, "0001").setting_value
     return templates.TemplateResponse(
         request=request, 
         name="clients.html", 
-        context={"clients": all_clients, "theme": theme, "colorTheme": colorTheme}
+        context={
+            "clients": session.exec(select(Client)).all(),
+            "theme": session.get(AppSetting, "0000").setting_value,
+            "colorTheme": session.get(AppSetting, "0001").setting_value
+        }
     )
 
 @router.post("/add_client")
-def create_client(
+def add_client(
     session: SessionDependency,
     name: str = Form(...),
     business_name: str = Form(..., alias="business-name"),
@@ -64,23 +70,24 @@ def create_client(
     zip_code: str = Form(..., alias="zip-code"),
     email: str = Form(...),
     phone: str = Form(...)
-) -> RedirectResponse:
+) -> JSONResponse:
     """
     Creates a new client.
 
     Parameters:
-    - session: SessionDependency - A SQLModel session dependency for database access.
-    - name: str - The name of the client.
-    - business_name: str - The business name of the client.
-    - street_address: str - The street address of the client.
-    - city: str - The city of the client.
-    - state: str - The state of the client.
-    - zip_code: str - The zip code of the client.
-    - email: str - The email address of the client.
-    - phone: str - The phone number of the client.
+    - session: A SQLModel session dependency for database access.
+    - name: The name of the client.
+    - business_name: The business name of the client.
+    - street_address: The street address of the client.
+    - city: The city of the client.
+    - state: The state of the client.
+    - zip_code: The zip code of the client.
+    - email: The email address of the client.
+    - phone: The phone number of the client.
 
     Returns:
-    - RedirectResponse: If successful, a redirect response to the clients page with HTTP status code 303 (SEE OTHER).
+    - `JSONResponse`: A JSON object containing a status message, status code, 
+    and the newly created client object if the operation is successful.
 
     Raises:
     - HTTPException:
@@ -88,7 +95,7 @@ def create_client(
         - 500 (INTERNAL SERVER ERROR) for unexpected errors
     """
     # Validate the new client data
-    new_client = utils.call_service_or_422(
+    validate_status, new_client = utils.call_service_or_422(
         ClientCRUD.validate_data,
         Client(
             name=name,
@@ -101,10 +108,31 @@ def create_client(
             phone=phone
         )
     )
-    # Create the new client in the database
-    create_status = utils.call_service_or_500(ClientCRUD.create, new_client, session)
 
-    return RedirectResponse(url="/clients/", status_code=303)
+    # Create the new client in the database
+    create_status, client = utils.call_service_or_500(
+        ClientCRUD.create,
+        new_client,
+        session
+    )
+
+    return JSONResponse(
+        content={
+            "detail": create_status,
+            "client": {
+                "id": client.id,
+                "name": client.name,
+                "business_name": client.business_name,
+                "street_address": client.street_address,
+                "city": client.city,
+                "state": client.state,
+                "zip_code": client.zip_code,
+                "email": client.email,
+                "phone": client.phone,
+            },
+        },
+        status_code=200,
+    )
 
 @router.post("/edit_client")
 def edit_client(
@@ -118,32 +146,34 @@ def edit_client(
     new_email: str = Form(..., alias="email"),
     new_phone: str = Form(..., alias="phone"),
     client_id: int = Form(..., alias="client-id")
-) -> RedirectResponse:
+) -> JSONResponse:
     """
     Edits attributes of an existing client.
 
     Parameters:
-    - session: SessionDependency - A SQLModel session dependency for database access.
-    - new_name: str - The name of the client.
-    - new_business_name: str - The business name of the client.
-    - new_street_address: str - The street address of the client.
-    - new_city: str - The city of the client.
-    - new_state: str - The state of the client.
-    - new_zip_code: str - The zip code of the client.
-    - new_email: str - The email address of the client.
-    - new_phone: str - The phone number of the client.
-    - client_id: int - The unique ID of the client to edit.
+    - session: A SQLModel session dependency for database access.
+    - new_name: The name of the client.
+    - new_business_name: The business name of the client.
+    - new_street_address: The street address of the client.
+    - new_city: The city of the client.
+    - new_state: The state of the client.
+    - new_zip_code: The zip code of the client.
+    - new_email: The email address of the client.
+    - new_phone: The phone number of the client.
+    - client_id: The unique ID of the client to edit.
 
     Returns:
-    - RedirectResponse: If successful, a redirect response to the clients page with HTTP status code 303 (SEE OTHER).
+    - `JSONResponse`: A JSON object containing a status message, status code, 
+    and the edited client object if the operation is successful.
 
     Raises:
     - HTTPException:
         - 422 (UNPROCESSABLE ENTITY) for form validation errors
+        - 404 (NOT FOUND) if the service to edit does not exist in the database
         - 500 (INTERNAL SERVER ERROR) for unexpected errors
     """
     # Validate the updated client data
-    updated_client = utils.call_service_or_422(
+    validate_status, updated_client = utils.call_service_or_422(
         ClientCRUD.validate_data,
         Client(
             name=new_name,
@@ -156,35 +186,75 @@ def edit_client(
             phone=new_phone
         )
     )
-    # Get the existing client from the database
-    existing_client = utils.call_service_or_404(ClientCRUD.get, client_id, session)
-    # Update the existing client's attributes with the updated client's data
-    update_status = utils.call_service_or_500(ClientCRUD.update, existing_client, updated_client, session)
 
-    return RedirectResponse(url="/clients/", status_code=303)
+    # Get the existing client from the database
+    get_status, existing_client = utils.call_service_or_404(
+        ClientCRUD.get,
+        client_id,
+        session
+    )
+
+    # Update the existing client's attributes with the updated client's data
+    update_status, updated_client = utils.call_service_or_500(
+        ClientCRUD.update,
+        existing_client,
+        updated_client,
+        session
+    )
+
+    return JSONResponse(
+        content={
+            "detail": update_status,
+            "client": {
+                "id": updated_client.id,
+                "name": updated_client.name,
+                "business_name": updated_client.business_name,
+                "street_address": updated_client.street_address,
+                "city": updated_client.city,
+                "state": updated_client.state,
+                "zip_code": updated_client.zip_code,
+                "email": updated_client.email,
+                "phone": updated_client.phone,
+            },
+        },
+        status_code=200,
+    )
 
 @router.post("/remove_client")
 def remove_client(
     session: SessionDependency,
     client_id: int = Form(..., alias="client-id")
-) -> RedirectResponse:
+) -> JSONResponse:
     """
     Removes an existing client.
 
     Parameters:
-    - session: SessionDependency - A SQLModel session dependency for database access.
-    - client_id: int - The unique ID of the client to remove.
+    - session: A SQLModel session dependency for database access.
+    - client_id: The unique ID of the client to remove.
 
     Returns:
-    - RedirectResponse: If successful, a redirect response to the clients page with HTTP status code 303 (SEE OTHER).
+    - `JSONResponse`: A JSON object containing a status message, status code, 
+    and the removed service object's unique id if the operation is successful.
 
     Raises:
     - HTTPException:
         - 500 (INTERNAL SERVER ERROR) for unexpected errors
     """
-    delete_status = utils.call_service_or_500(ClientCRUD.delete, client_id, session)
+    delete_status, client = utils.call_service_or_500(
+        ClientCRUD.delete,
+        client_id,
+        session
+    )
 
-    return RedirectResponse(url="/clients/", status_code=303)
+    return JSONResponse(
+        content={
+            "detail": delete_status,
+            "client": {
+                "id": client.id,
+            },
+        },
+        status_code=200,
+    )
 
 @router.post("/save_quote_profile")
 async def save_client_quote_profile(
