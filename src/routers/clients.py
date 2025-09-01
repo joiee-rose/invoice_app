@@ -295,10 +295,10 @@ async def send_quote(
     )
     quote_no = f"{client_id}-{str(num_quotes + 1).zfill(4)}"
 
-    # Get the path to save quote PDFs to from app settings
+    # Get the path to save quote PDFs to from app settings (id: 3000)
     pdf_save_path = utils.call_service_or_404(
         AppSettingCRUD.get,
-        "3001",
+        "3000",
         session
     )
 
@@ -337,7 +337,7 @@ async def send_quote(
         subtype="plain",
         attachments=[
             {
-                "file": f"{pdf_save_path}/m&m-quote_{client.name.replace(" ", "_")}_{quote_no}.pdf",
+                "file": f'{pdf_save_path}/m&m-quote_{client.name.replace(" ", "_")}_{quote_no}.pdf',
                 "mime_type": "application/pdf",
             }
         ]

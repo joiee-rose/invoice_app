@@ -11,10 +11,9 @@
                 <h1 class="text-3xl font-bold">Settings</h1>
                 <button id="btn-save-settings" type="submit" class="h-[2.25rem] pl-4 pr-4 bg-{{ colorTheme }} rounded-md text-base font-semibold cursor-pointer">Save</button>
             </div>
-
             <!-- General (App Settings) -->
-            <div class="mb-4 flex flex-col gap-4">
-                <h2 class="mb-2 text-2xl font-bold">General</h2>
+            <div class="mb-6 flex flex-col gap-4">
+                <h2 class="text-2xl font-bold">General</h2>
                 <!-- Theme -->
                 <div class="flex flex-row items-center">
                     {% for app_setting in app_settings %}
@@ -55,25 +54,46 @@
                     {% endfor %}
                 </div>
             </div>
-
-            <!-- Quotes & Invoices -->
-            <div class="mb-4 flex flex-col gap-2">
-                <h2 class="mb-2 text-2xl font-bold">Quotes & Invoices</h2>
-                <!-- Save Quote PDFs To (PDF Save To Path) -->
-                <div class="mb-2 flex flex-row items-center">
+            <!-- Quotes Settings -->
+            <div class="mb-6 flex flex-col gap-4">
+                <h2 class="text-2xl font-bold">Quotes</h2>
+                <!-- Save Quote PDFs To Path -->
+                <div class="flex flex-row items-center">
                     {% for app_setting in app_settings %}
-                        {% if app_setting.id == "3001" %}
+                        {% if app_setting.id == "3000" %}
                             <p class="pr-2">Save Quote PDFs To:</p>
                             <input type="text" id="{{ app_setting.id }}" name="{{ app_setting.id }}" class="h-[2.25rem] flex-1 p-2 border rounded-md text-base" value="{{ app_setting.setting_value}}">
                         {% endif %}
                     {% endfor %}
                 </div>
-                <!-- Save Invoice PDFs To (PDF Save To Path) -->
+                <!-- Quotes Email Body -->
+                <div class="flex flex-col">
+                    {% for app_setting in app_settings %}
+                        {% if app_setting.id == "3001" %}
+                            <p class="pr-2">Quotes Email Body:</p>
+                            <textarea rows="5" id="{{ app_setting.id }}" name="{{ app_setting.id }}" class="h-[2.25rem] flex-1 p-2 border rounded-md text-base" value="{{ app_setting.setting_value}}">{{ app_setting.setting_value}}</textarea>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+            <!-- Invoices Settings -->
+            <div class="mb-6 flex flex-col gap-4">
+                <h2 class="text-2xl font-bold">Invoices</h2>
+                <!-- Save Invoice PDFs To Path -->
                 <div class="flex flex-row items-center">
                     {% for app_setting in app_settings %}
-                        {% if app_setting.id == "3000" %}
+                        {% if app_setting.id == "4000" %}
                             <p class="pr-2">Save Invoice PDFs To:</p>
                             <input type="text" id="{{ app_setting.id }}" name="{{ app_setting.id }}" class="h-[2.25rem] flex-1 p-2 border rounded-md text-base" value="{{ app_setting.setting_value}}">
+                        {% endif %}
+                    {% endfor %}
+                </div>
+                <!-- Invoices Email Body -->
+                <div class="flex flex-col">
+                    {% for app_setting in app_settings %}
+                        {% if app_setting.id == "4001" %}
+                            <p class="pr-2">Invoices Email Body:</p>
+                            <textarea rows="5" id="{{ app_setting.id }}" name="{{ app_setting.id }}" class="h-[2.25rem] flex-1 p-2 border rounded-md text-base" value="{{ app_setting.setting_value}}">{{ app_setting.setting_value}}</textarea>
                         {% endif %}
                     {% endfor %}
                 </div>

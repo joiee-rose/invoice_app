@@ -66,7 +66,7 @@ class PDFServices:
                         <table width="100%" style="border:none; margin-bottom:24px;">
                             <tr>
                                 <td style="text-align:left; font-size:12px;">{client.name}</td>
-                                {f"""<td style="text-align:right; font-size:12px;">Invoice No.: {invoice_no}</td>""" if file_type == "invoice" else f"""<td style="text-align:right; font-size:12px;">Quote No.: {quote_no}</td>"""}
+                                {f'"<td style="text-align:right; font-size:12px;">Invoice No.: {invoice_no}</td>"' if file_type == "invoice" else f'"<td style="text-align:right; font-size:12px;">Quote No.: {quote_no}</td>"'}
                             </tr>
                             <tr>
                                 <td style="text-align:left; font-size:12px;">{client.business_name}</td>
@@ -136,10 +136,10 @@ class PDFServices:
         """
         if file_type == "invoice":
             # ex: m&m-invoice_Joie-Rose_Stangle_1-0001
-            filename = f"m&m-invoice_{client.name.replace(" ", "_")}_{invoice_no}"
+            filename = f'm&m-invoice_{client.name.replace(" ", "_")}_{invoice_no}'
         else:
             # ex: m&m-quote_Joie-Rose_Stangle_1-0001
-            filename = f"m&m-quote_{client.name.replace(" ", "_")}_{quote_no}"
+            filename = f'm&m-quote_{client.name.replace(" ", "_")}_{quote_no}'
 
         with open(f"{pdf_save_path}/{filename}.pdf", "w+b") as result_file:
             pisa_status = pisa.pisaDocument(

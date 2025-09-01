@@ -14,6 +14,7 @@ from sqlmodel import SQLModel, Session
 from routers import clients, quotes_and_invoices, services, settings
 from database import sqlite_engine, get_session
 from models import Client, Service, ClientQuoteProfile, Quote, Invoice, AppSetting
+from services import AppSettingCRUD
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -39,9 +40,12 @@ async def lifespan(app: FastAPI):
         AppSetting(id="0001", category="general", setting_name="color-theme", setting_value="blue-400"),
         # 1000 series: Client Settings
         # 2000 series: Service Settings
-        # 3000 series: Quotes & Invoices Settings
-        AppSetting(id="3000", category="quotes_invoices", setting_name="invoice-pdfs-save-to-path", setting_value=invoices_dir),
-        AppSetting(id="3001", category="quotes_invoices", setting_name="quote-pdfs-save-to-path", setting_value=quotes_dir),
+        # 3000 series: Quotes Settings
+        AppSetting(id="3000", category="quotes", setting_name="quote-save-pdfs-to-path", setting_value=quotes_dir),
+        AppSetting(id="3001", category="quotes", setting_name="quote-email-body", setting_value=""),
+        # 4000 series: Invoices Settings
+        AppSetting(id="4000", category="invoices", setting_name="invoice-save-pdfs-to-path", setting_value=invoices_dir),
+        AppSetting(id="4001", category="invoices", setting_name="invoice-email-body", setting_value="")
     ]
 
     with Session(sqlite_engine) as session:

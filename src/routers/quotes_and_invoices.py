@@ -197,8 +197,8 @@ async def send_quotes(
 
         # Get the path to save quote PDFs to from app settings
         pdf_save_path = utils.call_service_or_404(
-            AppSettingCRUD.get,
-            "3001",
+            AppSettingCRUD.get_by_setting_name,
+            "quote-save-pdfs-to-path",
             session
         )
 
@@ -237,7 +237,7 @@ async def send_quotes(
             subtype="plain",
             attachments=[
                 {
-                    "file": f"{pdf_save_path}/m&m-quote_{client.name.replace(" ", "_")}_{quote_no}.pdf",
+                    "file": f'{pdf_save_path}/m&m-quote_{client.name.replace(" ", "_")}_{quote_no}.pdf',
                     "mime_type": "application/pdf",
                 }
             ]
@@ -311,8 +311,8 @@ async def send_invoices(
 
         # Get the path to save invoice PDFs to from app settings
         pdf_save_path = utils.call_service_or_404(
-            AppSettingCRUD.get,
-            "3000",
+            AppSettingCRUD.get_by_setting_name,
+            "invoice-save-pdfs-to-path",
             session
         )
 
@@ -351,7 +351,7 @@ async def send_invoices(
             subtype="plain",
             attachments=[
                 {
-                    "file": f"{pdf_save_path}/m&m-invoice_{client.name.replace(" ", "_")}_{invoice_no}.pdf",
+                    "file": f'{pdf_save_path}/m&m-invoice_{client.name.replace(" ", "_")}_{invoice_no}.pdf',
                     "mime_type": "application/pdf",
                 }
             ]

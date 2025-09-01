@@ -290,3 +290,9 @@ class AppSettingCRUD:
         session.delete(app_setting)
         session.commit()
         return True, "AppSetting deleted successfully."
+
+    @staticmethod
+    def get_by_setting_name(setting_name: str, session: Session) -> tuple[bool, AppSetting | str]:
+        statement = select(AppSetting).where(AppSetting.setting_name == setting_name)
+        app_setting = session.exec(statement).first()
+        return (False, "AppSetting not found.") if not app_setting else (True, app_setting.setting_value)
