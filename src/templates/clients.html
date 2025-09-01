@@ -71,7 +71,7 @@
             <button id="btn_show-new-client-form" class="h-[2.25rem] pl-4 pr-4 bg-{{ colorTheme }} rounded-md text-base font-semibold cursor-pointer">New Client</button>
         </div>
         <!-- table of current clients -->
-        <div class="relative w-full h-full overflow-scroll flex flex-col bg-white shadow-md rounded-lg bg-clip-border">
+        <div class="relative w-full h-full overflow-auto flex flex-col bg-white shadow-md rounded-lg bg-clip-border">
             <table class="w-full min-w-max table-auto text-left">
                 <thead>
                     <tr class="h-[2.25rem] bg-{{ colorTheme }} border-b">
@@ -267,8 +267,8 @@
         <!-- Form -->
         <form id="form_client-quote-profile-form" method="post">
             <!-- table of services for the client -->
-            <div class="relative w-full h-full mb-4 overflow-scroll flex flex-col bg-white shadow-md rounded-lg bg-clip-border">
-                <table class="w-full min-w-max table-auto text-left">
+            <div class="relative w-full h-full mb-4 overflow-auto flex flex-col bg-white shadow-md rounded-lg bg-clip-border">
+                <table class="w-full table-auto text-left">
                     <thead>
                         <tr class="h-[2rem] bg-{{ colorTheme }} border-b">
                             <th class="w-[25%] p-2">Service</th>

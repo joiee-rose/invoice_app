@@ -12,15 +12,21 @@
         <!-- CSS -->
         {% if colorTheme == "emerald-400" %}
             {% set iconHoverColor = "oklch(84.5% 0.143 164.978)" %} <!-- emerald 300 -->
+            {% set toastSuccessColor = "oklch(76.5% 0.177 163.223)" %} <!-- emerald 400 -->
         {% elif colorTheme == "blue-400" %}
             {% set iconHoverColor = "oklch(80.9% 0.105 251.813)" %} <!-- blue 300 -->
+            {% set toastSuccessColor = "oklch(70.7% 0.165 254.624)" %} <!-- blue 400 -->
         {% elif colorTheme == "violet-400" %}
             {% set iconHoverColor = "oklch(81.1% 0.111 293.571)" %} <!-- violet 300 -->
+            {% set toastSuccessColor = "oklch(70.2% 0.183 293.541)" %} <!-- violet 400 -->
         {% elif colorTheme == "fuchsia-400" %}
             {% set iconHoverColor = "oklch(83.3% 0.145 321.434)" %} <!-- fuchsia 300 -->
+            {% set toastSuccessColor = "oklch(74% 0.238 322.16)" %} <!-- fuchsia 400 -->
         {% elif colorTheme == "rose-400" %}
             {% set iconHoverColor = "oklch(81% 0.117 11.638)" %} <!-- rose 300 -->
+            {% set toastSuccessColor = "oklch(71.2% 0.194 13.428)" %} <!-- rose 400 -->
         {% endif %}
+        {% set toastErrorColor = "oklch(59.3% 0.234 29.234)" %} <!-- red 500 -->
         <style>
             body {
                 font-family: 'Mona Sans', sans-serif;
@@ -76,6 +82,30 @@
                 width: 100%;
                 left: 50%;
             }
+
+            #toast-success {
+                opacity: 0; /* hide by default */
+                transform: translateX(-100%);
+                transition: transform 0.8s ease, opacity 0.7s ease;
+                border-left-width: 8px;
+                border-left-style: solid;
+                border-left-color: {{ toastSuccessColor }};
+            }
+
+            #toast-success.show { transform: translateX(0); opacity: 1; }
+            #toast-success.hide { transform: translateX(-100%); opacity: 0; }
+
+            #toast-error {
+                opacity: 0; /* hide by default */
+                transform: translateX(-100%);
+                transition: transform 0.8s ease, opacity 0.7s ease;
+                border-left-width: 8px;
+                border-left-style: solid;
+                border-left-color: {{ toastErrorColor }};
+            }
+
+            #toast-error.show { transform: translateX(0); opacity: 1; }
+            #toast-error.hide { transform: translateX(-100%); opacity: 0; }
         </style>
         {% block css %}{% endblock %}
     </head> 
@@ -141,6 +171,22 @@
         <main class="w-full h-full m-4 p-4 bg-gray-50 shadow-gray-950 shadow-lg/20 rounded-lg">
             {% block content %}
             {% endblock %}
+
+            <!-- Toast Notifications -->
+            <!-- Success/OK -->
+            <div id="toast-success" class="min-w-96 max-w-112 flex items-center gap-4 fixed left-10 bottom-10 px-5 py-4 rounded-lg bg-gray-50 drop-shadow-gray-950 drop-shadow-lg/25">
+                <span class="flex-shrink-0">
+                    {{ heroicon_solid("check-circle", width="1.875rem", height="1.875rem", color=toastSuccessColor) }}
+                </span>
+                <p class="text-base flex-grow break-words" id="p_toast-success"></p>
+            </div>
+            <!-- Error -->
+            <div id="toast-error" class="min-w-96 max-w-112 flex items-center gap-4 fixed left-10 bottom-10 px-5 py-4 rounded-lg bg-gray-50 drop-shadow-gray-950 drop-shadow-lg/25">
+                <span class="flex-shrink-0">
+                    {{ heroicon_solid("exclamation-circle", width="1.875rem", height="1.875rem", color=toastErrorColor) }}
+                </span>
+                <p class="text-base flex-grow break-words" id="p_toast-error"></p>
+            </div>
         </main>
         <!-- JavaScript -->
         {% block javascript %}{% endblock %}

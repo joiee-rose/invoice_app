@@ -60,47 +60,69 @@ class ClientCRUD:
 
 class ServiceCRUD:
     @staticmethod
-    def validate_data(data: Service) -> tuple[bool, str]:
+    def validate_data(
+        data: Service
+    ) -> tuple[bool, str, Service | None]:
         try:
             Service.model_validate(data)
-            return True, data
+            return True, "Validated fields.", data
         except Exception as e:
-            return False, str(e)
+            return False, str(e), None
         
     @staticmethod
-    def create(data: Service, session: Session) -> tuple[bool, str]:
-        is_valid, message = ServiceCRUD.validate_data(data)
+    def create(
+        data: Service,
+        session: Session
+    ) -> tuple[bool, str, Service | None]:
+        is_valid, message, service = ServiceCRUD.validate_data(data)
         if not is_valid:
-            return False, message
+            return False, message, None
         
         session.add(data)
         session.commit()
-        return True, "Service created successfully."
+        session.refresh(data)
+
+        return True, "Service created successfully.", service
     
     @staticmethod
-    def get(id: int, session: Session) -> tuple[bool, Service | str]:
-        service = session.get(Service, id)
-        return (False, "Service not found.") if not service else (True, service)
-
-    @staticmethod
-    def update(service: Service, data: Service, session: Session) -> tuple[bool, str]:
-        service.name = data.name
-        service.description = data.description
-        service.unit_price = data.unit_price
-
-        session.add(service)
-        session.commit()
-        return True, "Service updated successfully."
-
-    @staticmethod
-    def delete(id: int, session: Session) -> tuple[bool, str]:
+    def get(
+        id: int,
+        session: Session
+    ) -> tuple[bool, str, Service | None]:
         service = session.get(Service, id)
         if not service:
-            return False, "Service not found."
+            return False, "Service not found.", None
+        return True, "Service found.", service
+
+    @staticmethod
+    def update(
+        service: Service,
+        data: Service,
+        session: Session
+    ) -> tuple[bool, str, Service | None]:
+        try:
+            service.name = data.name
+            service.description = data.description
+            service.unit_price = data.unit_price
+
+            session.add(service)
+            session.commit()
+            session.refresh(service)
+
+            return True, "Service updated successfully.", service
+        except Exception as e:
+            return False, str(e), None
+
+    @staticmethod
+    def delete(id: int, session: Session) -> tuple[bool, str, Service | None]:
+        service = session.get(Service, id)
+        if not service:
+            return False, "Service not found.", None
 
         session.delete(service)
         session.commit()
-        return True, "Service deleted successfully."
+
+        return True, "Service deleted successfully.", service
 
 class ClientQuoteProfileCRUD:
     @staticmethod
