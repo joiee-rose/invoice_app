@@ -10,7 +10,7 @@ from heroicons.jinja import heroicon_micro, heroicon_mini, heroicon_outline, her
 from fastapi_tailwind import tailwind
 from sqlmodel import SQLModel, Session
 
-from routers import clients, services, invoices, settings
+from routers import clients, quotes_and_invoices, services, settings
 from database import sqlite_engine, get_session
 from models import Client, Service, ClientQuoteProfile, Quote, Invoice, AppSetting
 
@@ -64,7 +64,7 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 # Attach routers
 app.include_router(clients.router)
 app.include_router(services.router)
-app.include_router(invoices.router)
+app.include_router(quotes_and_invoices.router)
 app.include_router(settings.router)
 
 # Create Jinja2 templates object for rendering HTML from the templates directory

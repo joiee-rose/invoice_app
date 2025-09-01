@@ -84,7 +84,6 @@
                     </tr>
                 </thead>
                 <tbody id="tbody_all-clients">
-                    {% set tableHoverColor = colorTheme.replace("4", "2") %}
                     {% for client in clients %}
                     <tr class="h-[2.25rem] hover:bg-{{ tableHoverColor }}">
                         <td class="p-4">{{ client.name }}</td>

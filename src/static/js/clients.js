@@ -1,4 +1,4 @@
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener("DOMContentLoaded", function() {
     //#region CLIENT FORM
     const clientFormDialog = document.getElementById("dialog_client-form");
     const clientForm = document.getElementById("form_client-form");
