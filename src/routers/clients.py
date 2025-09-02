@@ -261,19 +261,20 @@ async def save_client_quote_profile(
     request: Request,
     session: SessionDependency,
     client_id: int = Form(..., alias="client-id"),
-    services_count: int = Form(..., alias="services-count")
-) -> RedirectResponse:
+    min_monthly_charge: Decimal = Form(..., alias="min-monthly-charge")
+) -> JSONResponse:
     """
-    Save the client's quote profile. If a quote profile already exists for this client, it will be updated.
+    Save the client's quote profile. If a quote profile already exists for the 
+    client, it will be updated.
 
     Parameters:
-    - request: Request - The incoming HTTP request.
-    - session: SessionDependency - A SQLModel session dependency for database access.
-    - client_id: int - The unique ID of the client.
-    - services_count: int - The number of services in the quote profile.
+    - request: The incoming HTTP request.
+    - session: A SQLModel session dependency for database access.
+    - client_id: The unique ID of the client.
+    - min_monthly_charge: The minimum monthly charge for the client.
 
     Returns:
-    - RedirectResponse: If successful, a redirect response to the clients page with HTTP status code 303 (SEE OTHER).
+    - `JSONResponse`: A JSON object containing a status message and status code.
 
     Raises:
     - HTTPException:
@@ -284,52 +285,80 @@ async def save_client_quote_profile(
     form = await request.form()
     services = []
     grand_total = 0
-    for i in range(services_count):
+
+    service_ids = form.getlist("service")
+    service_names = form.getlist("service-name")
+    quantities = form.getlist("quantity")
+    per_units = form.getlist("per-unit")
+    unit_prices = form.getlist("unit-price")
+    taxes = form.getlist("tax")
+    total_prices = form.getlist("total-price")
+
+    for i in range(len(service_ids)):
         services.append({
-            "service_id": form.get(f"service-{i}"),
-            "service_name": form.get(f"service-name-{i}"),
-            "quantity": form.get(f"quantity-{i}"),
-            "per_unit": form.get(f"per-unit-{i}"),
-            "unit_price": form.get(f"unit-price-{i}"),
-            "total_price": form.get(f"total-price-{i}")
+            "service_id": service_ids[i],
+            "service_name": service_names[i],
+            "quantity": quantities[i],
+            "per_unit": per_units[i],
+            "unit_price": unit_prices[i],
+            "tax": taxes[i],
+            "total_price": total_prices[i]
         })
-        grand_total += Decimal(form.get(f"total-price-{i}")) 
+        grand_total += Decimal(form.getlist("total-price")[i]) 
 
     # Validate the new client quote profile data
-    new_client_quote_profile = utils.call_service_or_422(
+    validate_status, new_client_quote_profile = utils.call_service_or_422(
         ClientQuoteProfileCRUD.validate_data,
         ClientQuoteProfile(
             client_id=client_id,
             services=services,
-            grand_total=grand_total
+            grand_total=grand_total,
+            min_monthly_charge=min_monthly_charge
         )
     )
+
     # Check if client quote profile already exists
     existing_client_quote_profile = session.get(ClientQuoteProfile, client_id)
+
     if existing_client_quote_profile:
-        # Update the existing client quote profile's attributes with the new client quote profile's data
-        update_status = utils.call_service_or_500(ClientQuoteProfileCRUD.update, existing_client_quote_profile, new_client_quote_profile, session)
+        # Update the existing client quote profile's attributes with the new
+        # client quote profile's data
+        status, client_quote_profile = utils.call_service_or_500(
+            ClientQuoteProfileCRUD.update,
+            existing_client_quote_profile,
+            new_client_quote_profile,
+            session
+        )
     else:
         # Create a new client quote profile in the database
-        create_status = utils.call_service_or_500(ClientQuoteProfileCRUD.create, new_client_quote_profile, session)
+        status, client_quote_profile = utils.call_service_or_500(
+            ClientQuoteProfileCRUD.create,
+            new_client_quote_profile,
+            session
+        )
 
-    return RedirectResponse(url="/clients/", status_code=303)
+    return JSONResponse(
+        content={
+            "detail": status,
+        },
+        status_code=200,
+    )
 
 @router.post("/send_quote")
 async def send_quote(
     request: Request,
     session: SessionDependency,
     client_id: int = Form(..., alias="client-id"),
-    services_count: int = Form(..., alias="services-count")
+    min_monthly_charge: Decimal = Form(..., alias="min-monthly-charge")
 ):
     """
     Send a quote as a PDF to the client via email.
 
     Parameters:
-    - request: Request - The incoming HTTP request.
-    - session: SessionDependency - A SQLModel session dependency for database access.
-    - client_id: int - The unique ID of the client.
-    - services_count: int - The number of services in the quote.
+    - request: The incoming HTTP request.
+    - session: A SQLModel session dependency for database access.
+    - client_id: The unique ID of the client.
+    - min_monthly_charge: The minimum monthly charge for the client.
 
     Returns:
     - RedirectResponse: If successful, a redirect response to the clients page with HTTP status code 303 (SEE OTHER).
@@ -342,23 +371,33 @@ async def send_quote(
     form = await request.form()
     services = []
     grand_total = 0
-    for i in range(services_count):
+
+    service_ids = form.getlist("service")
+    service_names = form.getlist("service-name")
+    quantities = form.getlist("quantity")
+    per_units = form.getlist("per-unit")
+    unit_prices = form.getlist("unit-price")
+    taxes = form.getlist("tax")
+    total_prices = form.getlist("total-price")
+
+    for i in range(len(service_ids)):
         services.append({
-            "service_id": form.get(f"service-{i}"),
-            "service_name": form.get(f"service-name-{i}"),
-            "quantity": form.get(f"quantity-{i}"),
-            "per_unit": form.get(f"per-unit-{i}"),
-            "unit_price": form.get(f"unit-price-{i}"),
-            "total_price": form.get(f"total-price-{i}")
+            "service_id": service_ids[i],
+            "service_name": service_names[i],
+            "quantity": quantities[i],
+            "per_unit": per_units[i] if per_units[i] != "-1" else "--",
+            "unit_price": unit_prices[i],
+            "tax": taxes[i],
+            "total_price": total_prices[i]
         })
-        grand_total += Decimal(form.get(f"total-price-{i}"))
+        grand_total += Decimal(form.getlist("total-price")[i])
 
     # Get the client from the database
     client = session.get(Client, client_id)
 
-    # Get the number of quotes existing for the client and generate a
-    # quote number for the quote based on that value and the client's unique id
-    num_quotes = utils.call_service_or_500(
+    # Get the number of quotes existing for the client and generate a quote
+    # number for the quote based on that value and the client's unique id
+    get_status, num_quotes = utils.call_service_or_500(
         QuoteCRUD.count_by_client_id,
         client_id,
         session
@@ -366,14 +405,15 @@ async def send_quote(
     quote_no = f"{client_id}-{str(num_quotes + 1).zfill(4)}"
 
     # Get the path to save quote PDFs to from app settings (id: 3000)
-    pdf_save_path = utils.call_service_or_404(
+    get_status, app_setting = utils.call_service_or_404(
         AppSettingCRUD.get,
         "3000",
         session
     )
+    pdf_save_path = app_setting.setting_value
 
     # Generate HTML source for the quote pdf
-    html_source = utils.call_service_or_500(
+    generate_status, html_source = utils.call_service_or_500(
         PDFServices.generate_html_source,
         file_type="quote",
         client=client,
@@ -394,27 +434,50 @@ async def send_quote(
         pdf_save_path=pdf_save_path,
     )
 
+    # Get the quote email body from app settings (id: 3001)
+    get_status, app_setting = utils.call_service_or_404(
+        AppSettingCRUD.get,
+        "3001",
+        session
+    )
+    quote_email_body = app_setting.setting_value
+
+    # Replace placeholders in the email body
+    # Client Name
+    quote_email_body = quote_email_body.replace("{{client.name}}", client.name)
+    # Client Street Address
+    quote_email_body = quote_email_body.replace(
+        "{{client.street_address}}",
+        client.street_address
+    )
+    # Client Quote Minimum Monthly Charge
+    quote_email_body = quote_email_body.replace(
+        "{{min_monthly_charge}}",
+        f"{min_monthly_charge:.2f}"
+    )
+    # User's Business Email
+    # User's Business Phone No.
+
     # Send the email
-    email_status = await utils.call_async_service_or_500(
+    email_status, message = await utils.call_async_service_or_500(
         EmailServices.send_email,
         subject="M&M Quote Request",
         recipients=[client.email],
-        body=textwrap.dedent(f"""\
-            Dear {client.name},
-
-            M&M Concrete Designs is a fully insured and licensed contractor based.
-        """),
+        body=quote_email_body,
         subtype="plain",
         attachments=[
             {
-                "file": f'{pdf_save_path}/m&m-quote_{client.name.replace(" ", "_")}_{quote_no}.pdf',
+                "file": (
+                    f'{pdf_save_path}/m&m-quote_'
+                    f'{client.name.replace(" ", "_")}_{quote_no}.pdf'
+                ),
                 "mime_type": "application/pdf",
             }
         ]
     )
 
     # Validate the new quote data
-    new_quote = utils.call_service_or_422(
+    validate_status, new_quote = utils.call_service_or_422(
         QuoteCRUD.validate_data,
         Quote(
             client_id=client_id,
@@ -424,7 +487,11 @@ async def send_quote(
     )
     
     # Create the new quote in the database
-    create_status = utils.call_service_or_500(QuoteCRUD.create, new_quote, session)
+    create_status, quote = utils.call_service_or_500(
+        QuoteCRUD.create,
+        new_quote,
+        session
+    )
     
     return RedirectResponse(url="/clients/", status_code=303)
 

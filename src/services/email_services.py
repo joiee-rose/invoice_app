@@ -26,7 +26,7 @@ class EmailServices:
         body: str,
         subtype: str,
         attachments: list[dict],
-    ) -> tuple[bool, str]:
+    ) -> tuple[bool, str, MessageSchema | None]:
         try:
             message = MessageSchema(
                 subject=subject,
@@ -36,7 +36,7 @@ class EmailServices:
                 attachments=attachments
             )
             await fastmail.send_message(message)
-            return True, "Email sent."
+            return True, "Email sent.", message
         except Exception as e:
             # TODO - log error
-            return False, str(e)
+            return False, str(e), None

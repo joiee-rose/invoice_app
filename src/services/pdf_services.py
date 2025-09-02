@@ -16,7 +16,7 @@ class PDFServices:
         quote_no: str | None,
         services: List[Dict[str, Any]],
         grand_total: Decimal
-    ) -> tuple[bool, str]:
+    ) -> tuple[bool, str, str | None]:
         """
         Generates the HTML source used by xhtml2pdf to render the quote or
         invoice PDF.
@@ -43,6 +43,7 @@ class PDFServices:
                         <td style="text-align:center;">{service.get("quantity", "")}</td>
                         <td style="text-align:center;">{service.get("per_unit", "")}</td>
                         <td style="text-align:center;">{service.get("unit_price", "")}</td>
+                        <td style="text-align:center;">{service.get("tax", "")}</td>
                         <td style="text-align:center;">{service.get("total_price", "")}</td>
                     </tr>
                 """
@@ -66,7 +67,7 @@ class PDFServices:
                         <table width="100%" style="border:none; margin-bottom:24px;">
                             <tr>
                                 <td style="text-align:left; font-size:12px;">{client.name}</td>
-                                {f'"<td style="text-align:right; font-size:12px;">Invoice No.: {invoice_no}</td>"' if file_type == "invoice" else f'"<td style="text-align:right; font-size:12px;">Quote No.: {quote_no}</td>"'}
+                                {f'<td style="text-align:right; font-size:12px;">Invoice No.: {invoice_no}</td>' if file_type == "invoice" else f'<td style="text-align:right; font-size:12px;">Quote No.: {quote_no}</td>'}
                             </tr>
                             <tr>
                                 <td style="text-align:left; font-size:12px;">{client.business_name}</td>
@@ -80,11 +81,12 @@ class PDFServices:
                         <table width="100%" style="border-collapse:collapse;">
                             <thead>
                                 <tr style="height:24px; padding-top:4px; font-size:14px; background-color:#d4d4d8; border:1px solid #000;">
-                                    <th width="40%" style="text-align:center;">DESCRIPTION</th>
+                                    <th width="30%" style="text-align:center;">SERVICE</th>
                                     <th width="10%" style="text-align:center;">QUANTITY</th>
                                     <th width="10%" style="text-align:center;">PER UNIT</th>
-                                    <th width="20%" style="text-align:center;">UNIT PRICE (USD)</th>
-                                    <th width="20%" style="text-align:center;">TOTAL PRICE (USD)</th>
+                                    <th width="19%" style="text-align:center;">UNIT PRICE (USD)</th>
+                                    <th width="12%" style="text-align:center;">TAX (%)</th>
+                                    <th width="19%" style="text-align:center;">TOTAL PRICE (USD)</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -94,7 +96,7 @@ class PDFServices:
                                     <td style="border:none;"></td>
                                     <td style="border:none;"></td>
                                     <td style="border:none;"></td>
-                                    <td style="height:24px; padding-top:5px; text-align:center; font-size:14px; font-weight:bold; border:1px solid #000;">Total (USD)</td>
+                                    <td colspan="2" style="height:24px; padding-top:6px; text-align:center; font-size:14px; font-weight:bold; border:1px solid #000;">Total (USD)</td>
                                     <td style="height:24px; padding-top:5px; text-align:center; font-size:12px; border:1px solid #000;">{grand_total}</td>
                                 </tr>
                             </tbody>
@@ -104,9 +106,9 @@ class PDFServices:
             """
         except Exception as e:
             # TODO - log error
-            return False, str(e)
+            return False, str(e), None
 
-        return True, html_source
+        return True, "HTML source generated successfully.", html_source
 
     @staticmethod
     def save_pdf(
@@ -116,7 +118,7 @@ class PDFServices:
         quote_no: str | None,
         html_source: str,
         pdf_save_path: str,
-    ) -> tuple[bool, str]:
+    ) -> tuple[bool, str, str | None]:
         """
         Creates a PDF from a generated HTML source and saves 
         the generated PDF to the specified path.
@@ -150,5 +152,5 @@ class PDFServices:
         
             if pisa_status.err:
                 # TODO - log error
-                return False, "Failed to generate PDF."
-            return True, "PDF generated successfully."
+                return False, "Failed to generate PDF.", None
+            return True, "PDF generated successfully.", f"{pdf_save_path}/{filename}.pdf"

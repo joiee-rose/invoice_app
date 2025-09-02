@@ -9,3 +9,4 @@ class ClientQuoteProfile(SQLModel, table=True):
     # attributes
     services: List[Dict[str, Any]] | None = Field(default=None, sa_column=Column(JSON))
     grand_total: Decimal
+    min_monthly_charge: Decimal

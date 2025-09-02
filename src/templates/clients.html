@@ -6,24 +6,24 @@
 
 {% if colorTheme == "emerald-400" %}
     {% set tableRowHoverColor = "oklch(90.5% 0.093 164.15)" %} <!-- emerald 200 -->
-    {% set clients_iconHoverColor = "oklch(59.6% 0.145 163.225)" %} <!-- emerald 600 -->
-    {% set clients_closeFormIconHoverColor = "oklch(76.5% 0.177 163.223)" %} <!-- emerald 400 -->
+    {% set tableIconHoverColor = "oklch(59.6% 0.145 163.225)" %} <!-- emerald 600 -->
+    {% set closeFormIconHoverColor = "oklch(76.5% 0.177 163.223)" %} <!-- emerald 400 -->
 {% elif colorTheme == "blue-400" %}
     {% set tableRowHoverColor = "oklch(88.2% 0.059 254.128)" %} <!-- blue 200 -->
-    {% set clients_iconHoverColor = "oklch(54.6% 0.245 262.881)" %} <!-- blue 600 -->
-    {% set clients_closeFormIconHoverColor = "oklch(70.7% 0.165 254.624)" %} <!-- blue 400 -->
+    {% set tableIconHoverColor = "oklch(54.6% 0.245 262.881)" %} <!-- blue 600 -->
+    {% set closeFormIconHoverColor = "oklch(70.7% 0.165 254.624)" %} <!-- blue 400 -->
 {% elif colorTheme == "violet-400" %}
     {% set tableRowHoverColor = "oklch(89.4% 0.057 293.283)" %} <!-- violet 200 -->
-    {% set clients_iconHoverColor = "oklch(54.1% 0.281 293.009)" %} <!-- violet 600 -->
-    {% set clients_closeFormIconHoverColor = "oklch(70.2% 0.183 293.541)" %} <!-- violet 400 -->
+    {% set tableIconHoverColor = "oklch(54.1% 0.281 293.009)" %} <!-- violet 600 -->
+    {% set closeFormIconHoverColor = "oklch(70.2% 0.183 293.541)" %} <!-- violet 400 -->
 {% elif colorTheme == "fuchsia-400" %}
     {% set tableRowHoverColor = "oklch(90.3% 0.076 319.62)" %} <!-- fuchsia 200 -->
-    {% set clients_iconHoverColor = "oklch(59.1% 0.293 322.896)" %} <!-- fuchsia 600 -->
-    {% set clients_closeFormIconHoverColor = "oklch(74% 0.238 322.16)" %} <!-- fuchsia 400 -->
+    {% set tableIconHoverColor = "oklch(59.1% 0.293 322.896)" %} <!-- fuchsia 600 -->
+    {% set closeFormIconHoverColor = "oklch(74% 0.238 322.16)" %} <!-- fuchsia 400 -->
 {% elif colorTheme == "rose-400" %}
     {% set tableRowHoverColor = "oklch(89.2% 0.058 10.001)" %} <!-- rose 200 -->
-    {% set clients_iconHoverColor = "oklch(58.6% 0.253 17.585)" %} <!-- rose 600 -->
-    {% set clients_closeFormIconHoverColor = "oklch(71.2% 0.194 13.428)" %} <!-- rose 400 -->
+    {% set tableIconHoverColor = "oklch(58.6% 0.253 17.585)" %} <!-- rose 600 -->
+    {% set closeFormIconHoverColor = "oklch(71.2% 0.194 13.428)" %} <!-- rose 400 -->
 {% endif %}
 
 {% block css %}
@@ -85,7 +85,7 @@
                 </thead>
                 <tbody id="tbody_all-clients">
                     {% for client in clients %}
-                    <tr class="h-[2.25rem] hover:bg-{{ tableHoverColor }}">
+                    <tr id="tr_client-{{ client.id }}" class="h-[2.25rem]">
                         <td class="p-4">{{ client.name }}</td>
                         <td class="p-4">{{ client.business_name }}</td>
                         <td class="p-4">{{ client.get_billing_address() }}</td>
@@ -108,7 +108,7 @@
                             >
                                 <div class="icon-wrapper overflow-hidden flex-shrink-0">
                                     <span class="icon outline">{{ heroicon_outline("pencil", width="1.25rem", height="1.25rem") }}</span>
-                                    <span class="icon solid">{{ heroicon_solid("pencil", width="1.25rem", height="1.25rem", color=clients_iconHoverColor) }}</span>
+                                    <span class="icon solid">{{ heroicon_solid("pencil", width="1.25rem", height="1.25rem", color=tableIconHoverColor) }}</span>
                                 </div>
                             </button>
                             <!-- Remove Client Buttons -->
@@ -121,7 +121,7 @@
                             >
                                 <div class="icon-wrapper overflow-hidden flex-shrink-0">
                                     <span class="icon outline">{{ heroicon_outline("trash", width="1.25rem", height="1.25rem") }}</span>
-                                    <span class="icon solid">{{ heroicon_solid("trash", width="1.25rem", height="1.25rem", color=clients_iconHoverColor) }}</span>
+                                    <span class="icon solid">{{ heroicon_solid("trash", width="1.25rem", height="1.25rem", color=tableIconHoverColor) }}</span>
                                 </div>
                             </button>
                             <!-- Client Quote Profile Buttons -->
@@ -138,7 +138,7 @@
                             >
                                 <div class="icon-wrapper overflow-hidden flex-shrink-0">
                                     <span class="icon outline">{{ heroicon_outline("document-currency-dollar", width="1.25rem", height="1.25rem") }}</span>
-                                    <span class="icon solid">{{ heroicon_solid("document-currency-dollar", width="1.25rem", height="1.25rem", color=clients_iconHoverColor) }}</span>
+                                    <span class="icon solid">{{ heroicon_solid("document-currency-dollar", width="1.25rem", height="1.25rem", color=tableIconHoverColor) }}</span>
                                 </div>
                             </button>
                         </td>
@@ -157,12 +157,12 @@
             <button id="btn_hide-client-form" class="cursor-pointer group">
                 <div class="form-icon-wrapper overflow-hidden flex-shrink-0">
                     <span class="icon outline">{{ heroicon_outline("x-circle", width="1.875rem", height="1.875rem") }}</span>
-                    <span class="icon solid">{{ heroicon_solid("x-circle", width="1.875rem", height="1.875rem", color=clients_closeFormIconHoverColor) }}</span>
+                    <span class="icon solid">{{ heroicon_solid("x-circle", width="1.875rem", height="1.875rem", color=closeFormIconHoverColor) }}</span>
                 </div>
             </button>
         </div>
         <!-- Form -->
-        <form id="form_client-form" method="post">
+        <form id="form_client-form" method="post" data-icon-hover-color="{{ tableIconHoverColor }}">
             <div class="mb-2 flex flex-col gap-2">
                 <!-- Name -->
                 <div class="flex flex-col">
@@ -253,7 +253,7 @@
             <button id="btn_hide-client-quote-profile-form" class="cursor-pointer group">
                 <div class="form-icon-wrapper overflow-hidden flex-shrink-0">
                     <span class="icon outline">{{ heroicon_outline("x-circle", width="1.875rem", height="1.875rem") }}</span>
-                    <span class="icon solid">{{ heroicon_solid("x-circle", width="1.875rem", height="1.875rem", color=clients_closeFormIconHoverColor) }}</span>
+                    <span class="icon solid">{{ heroicon_solid("x-circle", width="1.875rem", height="1.875rem", color=closeFormIconHoverColor) }}</span>
                 </div>
             </button>
         </div>
@@ -266,16 +266,22 @@
         </div>
         <!-- Form -->
         <form id="form_client-quote-profile-form" method="post">
+            <!-- Minimum Monthly Charge -->
+            <div class="w-3/10 flex flex-col mb-2">
+                <label for="input_client-quote-profile-form_min-monthly-charge" class="pr-2 text-base">Minimum Monthly Charge (USD):</label>
+                <input type="text" id="input_client-quote-profile-form_min-monthly-charge" name="min-monthly-charge" class="h-[2rem] p-2 border rounded-md text-base" required>
+            </div>
             <!-- table of services for the client -->
             <div class="relative w-full h-full mb-4 overflow-auto flex flex-col bg-white shadow-md rounded-lg bg-clip-border">
                 <table class="w-full table-auto text-left">
                     <thead>
                         <tr class="h-[2rem] bg-{{ colorTheme }} border-b">
-                            <th class="w-[25%] p-2">Service</th>
-                            <th class="w-[5%] p-2">Quantity</th>
-                            <th class="w-[25%] p-2">Per Unit</th>
-                            <th class="w-[20%] p-2">Unit Price</th>
-                            <th class="w-[20%] p-2">Total Price</th>
+                            <th class="w-[20%] p-2">Service</th>
+                            <th class="w-[10%] p-2">Quantity</th>
+                            <th class="w-[20%] p-2">Per Unit</th>
+                            <th class="w-[20%] p-2">Unit Price (USD)</th>
+                            <th class="w-[10%] p-2">Tax (%)</th>
+                            <th class="w-[20%] p-2">Total Price (USD)</th>
                         </tr>
                     </thead>
                     <tbody id="tbody_client-quote-profile-services">
@@ -285,9 +291,8 @@
             </div>
             <!-- Add Service Button -->
             <button type="button" id="btn_add-client-service" class="h-[2.25rem] pl-4 pr-4 bg-{{ colorTheme }} rounded-md text-base font-semibold cursor-pointer">Add Service</button>
-            <!-- hidden inputs storing Client ID and Services Count -->
+            <!-- hidden input storing Client ID -->
             <input type="text" id="input_client-quote-profile-form_client-id" name="client-id" hidden>
-            <input type="text" id="input_client-quote-profile-form_services-count" name="services-count" value="0" hidden>
             <div class="mt-4 flex flex-row gap-4 justify-end">
                 <!-- Form Submit Button - Save Client Quote Profile -->
                 <button id="btn_save-client-quote-profile" type="submit" class="h-[2.25rem] pl-4 pr-4 bg-{{ colorTheme }} rounded-md text-base font-semibold cursor-pointer">Save</button>

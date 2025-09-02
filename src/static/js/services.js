@@ -48,10 +48,10 @@ document.addEventListener("DOMContentLoaded", function() {
                 closeFormDialog(serviceFormDialog);
                 // Either add the new service to the all services table or update the existing service in the all services table
                 if (serviceForm.action.endsWith("add_service")) {
-                    AddServiceToAllServicesTable(data.service);
+                    addServiceToAllServicesTable(data.service);
                 }
                 else if (serviceForm.action.endsWith("edit_service")) {
-                    EditServiceInAllServicesTable(data.service);
+                    editServiceInAllServicesTable(data.service);
                 }
                 // Show success toast notification
                 showToast("success", data.detail);
@@ -136,7 +136,7 @@ document.addEventListener("DOMContentLoaded", function() {
                 data = await response.json();
                 // Close the form dialog, remove the service from the all services table, and show a success toast notification
                 closeFormDialog(removeServiceFormDialog);
-                RemoveServiceFromAllServicesTable(data.service);
+                removeServiceFromAllServicesTable(data.service);
                 showToast("success", data.detail);
             } else {
                 data = await response.json();
@@ -209,7 +209,7 @@ document.addEventListener("DOMContentLoaded", function() {
      * @param {{ id: number, name: string, description: string, unit_price: string}} service - The service as a JSON object containing the unique ID, name, description, and unit price of the new service.
      * @returns {void}
      */
-    function AddServiceToAllServicesTable(service) {
+    function addServiceToAllServicesTable(service) {
         const allServicesTableBody = document.getElementById("tbody_all-services");
         const iconHoverColor = serviceForm.dataset.iconHoverColor;
 
@@ -276,7 +276,7 @@ document.addEventListener("DOMContentLoaded", function() {
         // Append the new <tr> element to the table body
         allServicesTableBody.appendChild(newRow);
 
-        // Open the "Edit Service" form (click event listener)
+        // Add Event Listener - Open the "Edit Service" form (click event listener)
         document.getElementById(`btn_show-edit-service-form-${service.id}`).addEventListener("click", (e) => {
             // Set form header, button text, and form action
             document.getElementById("h2_service-form-header").innerText = "Edit Service Details";
@@ -292,7 +292,7 @@ document.addEventListener("DOMContentLoaded", function() {
             openFormDialog(serviceFormDialog);
         });
 
-        // Open the "Remove Service" form (click event listener)
+        // Add Event Listener - Open the "Remove Service" form (click event listener)
         document.getElementById(`btn_show-remove-service-form-${service.id}`).addEventListener("click", (e) => {
             // Populate the form with the service to remove's data
             document.getElementById("p_remove-service-form_name-placeholder").innerText = e.currentTarget.dataset.name;
@@ -308,7 +308,7 @@ document.addEventListener("DOMContentLoaded", function() {
      * @param {{ id: number, name: string, description: string, unit_price: string}} service - The service as a JSON object containing the unique ID, name, description, and unit price of the updated service.
      * @returns {void}
      */
-    function EditServiceInAllServicesTable(service) {
+    function editServiceInAllServicesTable(service) {
         const serviceRow = document.getElementById(`tr_service-${service.id}`);
 
         serviceRow.getElementsByTagName("td")[0].innerText = service.name;
@@ -321,7 +321,7 @@ document.addEventListener("DOMContentLoaded", function() {
      * @param {{ id: number }} service - The service as a JSON object containing the unique ID of the removed service.
      * @returns {void}
      */
-    function RemoveServiceFromAllServicesTable(service) {
+    function removeServiceFromAllServicesTable(service) {
         document.getElementById(`tr_service-${service.id}`).remove();
     }
     //#endregion HELPER FUNCTIONS

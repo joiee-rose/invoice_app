@@ -14,7 +14,7 @@ class ClientCRUD:
     def validate_data(data: Client) -> tuple[bool, str, Client | None]:
         try:
             Client.model_validate(data)
-            return True, "Validated fields.", data
+            return True, "Validation successful.", data
         except Exception as e:
             return False, str(e), None
         
@@ -83,7 +83,7 @@ class ServiceCRUD:
     def validate_data(data: Service) -> tuple[bool, str, Service | None]:
         try:
             Service.model_validate(data)
-            return True, "Validated fields.", data
+            return True, "Validation successful.", data
         except Exception as e:
             return False, str(e), None
         
@@ -144,195 +144,297 @@ class ServiceCRUD:
 
 class ClientQuoteProfileCRUD:
     @staticmethod
-    def validate_data(data: ClientQuoteProfile) -> tuple[bool, str]:
+    def validate_data(
+        data: ClientQuoteProfile
+    ) -> tuple[bool, str, ClientQuoteProfile | None]:
         try:
             ClientQuoteProfile.model_validate(data)
-            return True, data
+            return True, "Validation successful.", data
         except Exception as e:
-            return False, str(e)
+            return False, str(e), None
         
     @staticmethod
-    def create(data: ClientQuoteProfile, session: Session) -> tuple[bool, str]:
-        is_valid, message = ClientQuoteProfileCRUD.validate_data(data)
+    def create(
+        data: ClientQuoteProfile,
+        session: Session
+    ) -> tuple[bool, str, ClientQuoteProfile | None]:
+        (
+            is_valid,
+            message,
+            quote_profile,
+        ) = ClientQuoteProfileCRUD.validate_data(data)
         if not is_valid:
-            return False, message
+            return False, message, None
         
         session.add(data)
         session.commit()
-        return True, "ClientQuoteProfile created successfully."
+        session.refresh(data)
+
+        return True, "Quote Profile created successfully.", quote_profile
     
     @staticmethod
-    def get(id: int, session: Session) -> tuple[bool, ClientQuoteProfile | str]:
-        client_quote_profile = session.get(ClientQuoteProfile, id)
-        return (False, "ClientQuoteProfile not found.") if not client_quote_profile else (True, client_quote_profile)
+    def get(
+        id: int,
+        session: Session
+    ) -> tuple[bool, str, ClientQuoteProfile | None]:
+        quote_profile = session.get(ClientQuoteProfile, id)
+        if not quote_profile:
+            return False, "Quote Profile not found.", None
+        return True, "Quote Profile found.", quote_profile
 
     @staticmethod
-    def update(client_quote_profile: ClientQuoteProfile, data: ClientQuoteProfile, session: Session) -> tuple[bool, str]:
-        client_quote_profile.services = data.services
-        client_quote_profile.grand_total = data.grand_total
+    def update(
+        quote_profile: ClientQuoteProfile,
+        data: ClientQuoteProfile,
+        session: Session
+    ) -> tuple[bool, str, ClientQuoteProfile | None]:
+        try:
+            quote_profile.services = data.services
+            quote_profile.grand_total = data.grand_total
+            quote_profile.min_monthly_charge = data.min_monthly_charge
 
-        session.add(client_quote_profile)
-        session.commit()
-        return True, "ClientQuoteProfile updated successfully."
+            session.add(quote_profile)
+            session.commit()
+            session.refresh(quote_profile)
+
+            return True, "Quote Profile updated successfully.", quote_profile
+        except Exception as e:
+            return False, str(e), None
 
     @staticmethod
-    def delete(id: int, session: Session) -> tuple[bool, str]:
-        client_quote_profile = session.get(ClientQuoteProfile, id)
-        if not client_quote_profile:
-            return False, "ClientQuoteProfile not found."
+    def delete(
+        id: int,
+        session: Session
+    ) -> tuple[bool, str, ClientQuoteProfile | None]:
+        quote_profile = session.get(ClientQuoteProfile, id)
+        if not quote_profile:
+            return False, "Quote Profile not found.", None
 
-        session.delete(client_quote_profile)
+        session.delete(quote_profile)
         session.commit()
-        return True, "ClientQuoteProfile deleted successfully."
+
+        return True, "Quote Profile deleted successfully.", quote_profile
 
 class QuoteCRUD:
     @staticmethod
-    def validate_data(data: Quote) -> tuple[bool, str]:
+    def validate_data(data: Quote) -> tuple[bool, str, Quote | None]:
         try:
             Quote.model_validate(data)
-            return True, data
+            return True, "Validation successful.", data
         except Exception as e:
-            return False, str(e)
+            return False, str(e), None
         
     @staticmethod
-    def create(data: Quote, session: Session) -> tuple[bool, str]:
-        is_valid, message = QuoteCRUD.validate_data(data)
+    def create(data: Quote, session: Session) -> tuple[bool, str, Quote | None]:
+        is_valid, message, quote = QuoteCRUD.validate_data(data)
         if not is_valid:
-            return False, message
+            return False, message, None
         
         session.add(data)
         session.commit()
-        return True, "Quote created successfully."
-    
-    @staticmethod
-    def get(id: int, session: Session) -> tuple[bool, Quote | str]:
-        quote = session.get(Quote, id)
-        return (False, "Quote not found.") if not quote else (True, quote)
+        session.refresh(data)
+
+        return True, "Quote created successfully.", quote
 
     @staticmethod
-    def update(quote: Quote, data: Quote, session: Session) -> tuple[bool, str]:
-        quote.quote_no = data.quote_no
-        quote.issue_date = data.issue_date
-        quote.pdf_html = data.pdf_html
-
-        session.add(quote)
-        session.commit()
-        return True, "Quote updated successfully."
-
-    @staticmethod
-    def delete(id: int, session: Session) -> tuple[bool, str]:
+    def get(id: int, session: Session) -> tuple[bool, str, Quote | None]:
         quote = session.get(Quote, id)
         if not quote:
-            return False, "Quote not found."
+            return False, "Quote not found.", None
+        return True, "Quote found.", quote
+
+    @staticmethod
+    def update(
+        quote: Quote,
+        data: Quote,
+        session: Session
+    ) -> tuple[bool, str, Quote | None]:
+        try:
+            quote.quote_no = data.quote_no
+            quote.issue_date = data.issue_date
+            quote.pdf_html = data.pdf_html
+
+            session.add(quote)
+            session.commit()
+            session.refresh(quote)
+
+            return True, "Quote updated successfully.", quote
+        except Exception as e:
+            return False, str(e), None
+
+    @staticmethod
+    def delete(id: int, session: Session) -> tuple[bool, str, Quote | None]:
+        quote = session.get(Quote, id)
+        if not quote:
+            return False, "Quote not found.", None
 
         session.delete(quote)
         session.commit()
-        return True, "Quote deleted successfully." 
+        
+        return True, "Quote deleted successfully.", quote
 
     @staticmethod
-    def count_by_client_id(client_id: int, session: Session) -> int:
+    def count_by_client_id(
+        client_id: int,
+        session: Session
+    ) -> tuple[bool, str, int | None]:
         try:
-            statement = select(func.count()).select_from(Quote).where(Quote.client_id == client_id)
-            return True, session.exec(statement).one()
+            statement = (
+                select(func.count())
+                .select_from(Quote)
+                .where(Quote.client_id == client_id)
+            )
+            return True, "Operation successful.", session.exec(statement).one()
         except Exception as e:
-            return False, str(e)
+            return False, str(e), None
 
 class InvoiceCRUD:
     @staticmethod
-    def validate_data(data: Invoice) -> tuple[bool, str]:
+    def validate_data(data: Invoice) -> tuple[bool, str, Invoice | None]:
         try:
             Invoice.model_validate(data)
-            return True, data
+            return True, "Validation successful.", data
         except Exception as e:
-            return False, str(e)
+            return False, str(e), None
         
     @staticmethod
-    def create(data: Invoice, session: Session) -> tuple[bool, str]:
-        is_valid, message = InvoiceCRUD.validate_data(data)
+    def create(
+        data: Invoice,
+        session: Session
+    ) -> tuple[bool, str, Invoice | None]:
+        is_valid, message, invoice = InvoiceCRUD.validate_data(data)
         if not is_valid:
-            return False, message
-        
+            return False, message, None
+
         session.add(data)
         session.commit()
-        return True, "Invoice created successfully."
-    
-    @staticmethod
-    def get(id: int, session: Session) -> tuple[bool, Invoice | str]:
-        invoice = session.get(Invoice, id)
-        return (False, "Invoice not found.") if not invoice else (True, invoice)
+        session.refresh(data)
+
+        return True, "Invoice created successfully.", invoice
 
     @staticmethod
-    def update(invoice: Invoice, data: Invoice, session: Session) -> tuple[bool, str]:
-        invoice.invoice_no = data.invoice_no
-        invoice.issue_date = data.issue_date
-        invoice.pdf_html = data.pdf_html
-
-        session.add(invoice)
-        session.commit()
-        return True, "Invoice updated successfully."
-
-    @staticmethod
-    def delete(id: int, session: Session) -> tuple[bool, str]:
+    def get(id: int, session: Session) -> tuple[bool, str, Invoice | None]:
         invoice = session.get(Invoice, id)
         if not invoice:
-            return False, "Invoice not found."
+            return False, "Invoice not found.", None
+        return True, "Invoice found.", invoice
+
+    @staticmethod
+    def update(
+        invoice: Invoice,
+        data: Invoice,
+        session: Session
+    ) -> tuple[bool, str, Invoice | None]:
+        try:
+            invoice.invoice_no = data.invoice_no
+            invoice.issue_date = data.issue_date
+            invoice.pdf_html = data.pdf_html
+
+            session.add(invoice)
+            session.commit()
+            session.refresh(invoice)
+
+            return True, "Invoice updated successfully.", invoice
+        except Exception as e:
+            return False, str(e), None
+
+    @staticmethod
+    def delete(id: int, session: Session) -> tuple[bool, str, Invoice | None]:
+        invoice = session.get(Invoice, id)
+        if not invoice:
+            return False, "Invoice not found.", None
 
         session.delete(invoice)
         session.commit()
-        return True, "Invoice deleted successfully." 
+
+        return True, "Invoice deleted successfully.", invoice
 
     @staticmethod
-    def count_by_client_id(client_id: int, session: Session) -> int:
+    def count_by_client_id(
+        client_id: int,
+        session: Session
+    ) -> tuple[bool, str, int | None]:
         try:
-            statement = select(func.count()).select_from(Invoice).where(Invoice.client_id == client_id)
-            return True, session.exec(statement).one()
+            statement = (
+                select(func.count())
+                .select_from(Invoice)
+                .where(Invoice.client_id == client_id)
+            )
+            return True, "Operation successful.", session.exec(statement).one()
         except Exception as e:
-            return False, str(e)
+            return False, str(e), None
 
 class AppSettingCRUD:
     @staticmethod
-    def validate_data(data: AppSetting) -> tuple[bool, str]:
+    def validate_data(data: AppSetting) -> tuple[bool, str, AppSetting | None]:
         try:
             AppSetting.model_validate(data)
-            return True, data
+            return True, "Validation successful.", data
         except Exception as e:
-            return False, str(e)
+            return False, str(e), None
         
     @staticmethod
-    def create(data: AppSetting, session: Session) -> tuple[bool, str]:
-        is_valid, message = AppSettingCRUD.validate_data(data)
+    def create(
+        data: AppSetting,
+        session: Session
+    ) -> tuple[bool, str, AppSetting | None]:
+        is_valid, message, app_setting = AppSettingCRUD.validate_data(data)
         if not is_valid:
-            return False, message
-        
+            return False, message, None
+
         session.add(data)
         session.commit()
-        return True, "AppSetting created successfully."
-    
-    @staticmethod
-    def get(id: int, session: Session) -> tuple[bool, AppSetting | str]:
-        app_setting = session.get(AppSetting, id)
-        return (False, "AppSetting not found.") if not app_setting else (True, app_setting.setting_value)
+        session.refresh(data)
+        
+        return True, "App Setting created successfully.", app_setting
 
     @staticmethod
-    def update(app_setting: AppSetting, data: AppSetting, session: Session) -> tuple[bool, str]:
-        app_setting.setting_value = data.setting_value
-
-        session.add(app_setting)
-        session.commit()
-        return True, "AppSetting updated successfully."
-
-    @staticmethod
-    def delete(id: int, session: Session) -> tuple[bool, str]:
+    def get(id: int, session: Session) -> tuple[bool, str, AppSetting | None]:
         app_setting = session.get(AppSetting, id)
         if not app_setting:
-            return False, "AppSetting not found."
+            return False, "App Setting not found.", None
+        return True, "App Setting found.", app_setting
+
+    @staticmethod
+    def update(
+        app_setting: AppSetting,
+        data: AppSetting,
+        session: Session
+    ) -> tuple[bool, str, AppSetting | None]:
+        try:
+            app_setting.setting_value = data.setting_value
+
+            session.add(app_setting)
+            session.commit()
+            session.refresh(app_setting)
+
+            return True, "App Setting updated successfully.", app_setting
+        except Exception as e:
+            return False, str(e), None
+
+    @staticmethod
+    def delete(
+        id: int,
+        session: Session
+    ) -> tuple[bool, str, AppSetting | None]:
+        app_setting = session.get(AppSetting, id)
+        if not app_setting:
+            return False, "App Setting not found.", None
 
         session.delete(app_setting)
         session.commit()
-        return True, "AppSetting deleted successfully."
+        return True, "App Setting deleted successfully.", app_setting
 
     @staticmethod
-    def get_by_setting_name(setting_name: str, session: Session) -> tuple[bool, AppSetting | str]:
-        statement = select(AppSetting).where(AppSetting.setting_name == setting_name)
+    def get_by_setting_name(
+        setting_name: str,
+        session: Session
+    ) -> tuple[bool, str, AppSetting | None]:
+        statement = (
+            select(AppSetting)
+            .where(AppSetting.setting_name == setting_name)
+        )
         app_setting = session.exec(statement).first()
-        return (False, "AppSetting not found.") if not app_setting else (True, app_setting.setting_value)
+        if not app_setting:
+            return False, "App Setting not found.", None
+        return True, "App Setting found.", app_setting
