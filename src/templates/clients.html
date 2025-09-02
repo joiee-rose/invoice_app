@@ -246,7 +246,7 @@
     </dialog>
 
     <!-- Client Quote Profile Form Dialog -->
-    <dialog id="dialog_client-quote-profile-form" class="w-224 m-auto p-4 flex flex-col bg-gray-50 rounded-lg" hidden>
+    <dialog id="dialog_client-quote-profile-form" class="w-288 m-auto p-4 flex flex-col bg-gray-50 rounded-lg" hidden>
         <!-- Form Header -->
         <div class="mb-4 flex flex-row justify-between">
             <h2 class="text-2xl font-bold">Client Quote Profile</h2>
@@ -265,10 +265,10 @@
             <p id="p_client-quote-profile-form_billing-address-2-placeholder"></p>
         </div>
         <!-- Form -->
-        <form id="form_client-quote-profile-form" method="post">
+        <form id="form_client-quote-profile-form" method="post" data-table-icon-hover-color="{{ tableIconHoverColor }}">
             <!-- Minimum Monthly Charge -->
             <div class="w-3/10 flex flex-col mb-2">
-                <label for="input_client-quote-profile-form_min-monthly-charge" class="pr-2 text-base">Minimum Monthly Charge (USD):</label>
+                <label for="input_client-quote-profile-form_min-monthly-charge" class="pr-2 text-base font-bold">Minimum Monthly Charge (USD):</label>
                 <input type="text" id="input_client-quote-profile-form_min-monthly-charge" name="min-monthly-charge" class="h-[2rem] p-2 border rounded-md text-base" required>
             </div>
             <!-- table of services for the client -->
@@ -276,12 +276,13 @@
                 <table class="w-full table-auto text-left">
                     <thead>
                         <tr class="h-[2rem] bg-{{ colorTheme }} border-b">
-                            <th class="w-[20%] p-2">Service</th>
-                            <th class="w-[10%] p-2">Quantity</th>
-                            <th class="w-[20%] p-2">Per Unit</th>
-                            <th class="w-[20%] p-2">Unit Price (USD)</th>
-                            <th class="w-[10%] p-2">Tax (%)</th>
-                            <th class="w-[20%] p-2">Total Price (USD)</th>
+                            <th class="w-[32%] p-2">Service</th>
+                            <th class="w-[8%] p-2 text-center">Quantity</th>
+                            <th class="w-[12%] p-2">Per Unit</th>
+                            <th class="w-[15%] p-2">Unit Price (USD)</th>
+                            <th class="w-[8%] p-2">Tax (%)</th>
+                            <th class="w-[15%] p-2">Total Price (USD)</th>
+                            <th class="w-[5%] p-2"></th>
                         </tr>
                     </thead>
                     <tbody id="tbody_client-quote-profile-services">
@@ -305,4 +306,5 @@
 
 {% block javascript %}
     <script src="/static/js/clients.js"></script>
+    <script id="services-data" type="application/json">{{ services | tojson }}</script>
 {% endblock %}

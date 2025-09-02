@@ -1,205 +1,235 @@
-document.addEventListener("DOMContentLoaded", function() {
+document.addEventListener("DOMContentLoaded", async function() {
     //#region CLIENT FORM
     const clientFormDialog = document.getElementById("dialog_client-form");
     const clientForm = document.getElementById("form_client-form");
 
-    // Open the "Add New Client" form (click event listener)
-    document.getElementById("btn_show-new-client-form").addEventListener("click", () => {
-        // Set form header, button text, and form action
-        document.getElementById("h2_client-form-header").innerText = "Create New Client";
-        document.getElementById("btn_submit-client-form").innerText = "Add Client";
-        clientForm.action = "/clients/add_client";
+    ////////////////////////
+    /* Open/Close Events */
+    //////////////////////
 
-        openFormDialog(clientFormDialog);
-    });
-
-    // Open the "Edit Client" form (click event listener)
-    document.querySelectorAll('[id^="btn_show-edit-client-form-"]').forEach((btn) => {
-        btn.addEventListener("click", () => {
-            // Set form header, button text, and form action
-            document.getElementById("h2_client-form-header").innerText = "Edit Client Details";
-            document.getElementById("btn_submit-client-form").innerText = "Update";
-            clientForm.action = "/clients/edit_client";
-
-            // Populate form with the client to edit's data
-            document.getElementById("input_client-form_name").value = btn.dataset.name;
-            document.getElementById("input_client-form_business-name").value = btn.dataset.businessName;
-            document.getElementById("input_client-form_street-address").value = btn.dataset.streetAddress;
-            document.getElementById("input_client-form_city").value = btn.dataset.city;
-            document.getElementById("input_client-form_state").value = btn.dataset.state;
-            document.getElementById("input_client-form_zip-code").value = btn.dataset.zipCode;
-            document.getElementById("input_client-form_email").value = btn.dataset.email;
-            document.getElementById("input_client-form_phone").value = btn.dataset.phone;
-            document.getElementById("input_client-form_client-id").value = btn.dataset.clientId;
-
-            openFormDialog(clientFormDialog);
+        // Open the "Add New Client" form
+        document.getElementById("btn_show-new-client-form").addEventListener("click", () => {
+            openAddNewClientForm();
         });
-    });
 
-    // Submit the Client Form (submit event listener)
-    clientForm.addEventListener("submit", async(e) => {
-        e.preventDefault();
-        const formData = new FormData(clientForm);
-
-        try {
-            const response = await fetch(clientForm.action, {
-                method: "POST",
-                body: formData,
-            });
-
-            if (response.ok) {
-                data = await response.json();
-                // Close the form dialog
-                closeFormDialog(clientFormDialog);
-                // Either add the new client to the all clients table or update the existing client in the all clients table
-                if (clientForm.action.endsWith("add_client")) {
-                    addClientToAllClientsTable(data.client);
-                }
-                else if (clientForm.action.endsWith("edit_client")) {
-                    editClientInAllClientsTable(data.client);
-                }
-                // Show success toast notification
-                showToast("success", data.detail);
-            } else {
-                data = await response.json();
-                if (response.status == 422) {
-                    showToast("error", data.detail || "Unprocessable Entity Error");
-                }
-                else if(response.status == 404) {
-                    closeFormDialog(serviceFormDialog);
-                    showToast("error", data.detail || "Client Not Found");
-                }
-                else if (response.status == 500) {
-                    closeFormDialog(serviceFormDialog);
-                    showToast("error", data.detail || "Internal Server Error");
-                }
-            }
-        } catch (error) {
+        // Close the Client Form
+        document.getElementById("btn_hide-client-form").addEventListener("click", () => {
             closeFormDialog(clientFormDialog);
-            showToast("error", error.message || "Unexpected Error");
-        }
-    });
+        });
 
-    // Close the Client Form (click event listener)
-    document.getElementById("btn_hide-client-form").addEventListener("click", () => {
-        closeFormDialog(clientFormDialog);
-    });
+        // Open the "Edit Client" form*
+        document.querySelectorAll('[id^="btn_show-edit-client-form-"]').forEach((btn) => {
+            btn.addEventListener("click", (e) => {
+                openEditClientForm(e.currentTarget);
+            });
+        });
+
+    //////////////////////
+    /* Form Submission */
+    ////////////////////
+
+        // Submit the Client Form
+        clientForm.addEventListener("submit", async(e) => {
+            e.preventDefault();
+            const formData = new FormData(clientForm);
+            try {
+                // Use the current form's action (set by the button that opens the form)
+                const response = await fetch(clientForm.action, {
+                    method: "POST",
+                    body: formData,
+                });
+
+                if (response.ok) {
+                    data = await response.json();
+                    // Close the form dialog
+                    closeFormDialog(clientFormDialog);
+                    if (clientForm.action.endsWith("add_client")) {
+                        // Add the new client to the all clients table
+                        addClientToAllClientsTable(data.client);
+                    }
+                    else if (clientForm.action.endsWith("edit_client")) {
+                        // Update the existing client in the all clients table
+                        editClientInAllClientsTable(data.client);
+                    }
+                    // Show success toast notification
+                    showToast("success", data.detail);
+                } else {
+                    data = await response.json();
+                    if (response.status == 422) {
+                        showToast("error", data.detail || "Unprocessable Entity Error");
+                    }
+                    else if(response.status == 404) {
+                        closeFormDialog(serviceFormDialog);
+                        showToast("error", data.detail || "Client Not Found");
+                    }
+                    else if (response.status == 500) {
+                        closeFormDialog(serviceFormDialog);
+                        showToast("error", data.detail || "Internal Server Error");
+                    }
+                }
+            } catch (error) {
+                closeFormDialog(clientFormDialog);
+                showToast("error", error.message || "Unexpected Error");
+            }
+        });
+
+    /////////////////////////////////////
+    /* Input Validation and Formating */
+    ///////////////////////////////////
+
+        // Phone Number Input
+        document.getElementById("input_client-form_phone").addEventListener("blur", function(e) {
+            formatPhoneInput(e.currentTarget);
+        });
     //#endregion CLIENT FORM
 
     //#region REMOVE CLIENT FORM
     const removeClientFormDialog = document.getElementById("dialog_remove-client-form");
     const removeClientForm = document.getElementById("form_remove-client-form");
 
-    // Open the "Remove Client" form (click event listener)
-    document.querySelectorAll('[id^="btn_show-remove-client-form-"]').forEach((btn) => {
-        btn.addEventListener("click", () => {
-            // Populate the form with the client to remove's data
-            document.getElementById("p_remove-client-form_name-placeholder").innerText = btn.dataset.name;
-            document.getElementById("p_remove-client-form_business-name-placeholder").innerText = btn.dataset.businessName;
-            document.getElementById("input_remove-client-form_client-id").value = btn.dataset.clientId;
+    ////////////////////////
+    /* Open/Close Events */
+    //////////////////////
 
-            openFormDialog(removeClientFormDialog);
-        });
-    });
-    
-    // Close the "Remove Client" form (click event listener)
-    document.getElementById("btn_hide-remove-client-form").addEventListener("click", () => {
-        closeFormDialog(removeClientFormDialog);
-    });
-
-    // Submit the "Remove Client" form (submit event listener)
-    removeClientForm.addEventListener("submit", async(e) => {
-        e.preventDefault();
-        const formData = new FormData(e.target);
-
-        try {
-            const response = await fetch(removeClientForm.action, {
-                method: "POST",
-                body: formData,
+        // Open the "Remove Client" form*
+        document.querySelectorAll('[id^="btn_show-remove-client-form-"]').forEach((btn) => {
+            btn.addEventListener("click", (e) => {
+                openRemoveClientForm(e.currentTarget);
             });
-
-            if (response.ok) {
-                data = await response.json();
-                // Close the form dialog, remove the client from the all clients table, and show a success toast notification
-                closeFormDialog(removeClientFormDialog);
-                removeClientFromAllClientsTable(data.client);
-                showToast("success", data.detail);
-            } else {
-                data = await response.json();
-                if (response.status == 500) {
-                    closeFormDialog(removeClientFormDialog);
-                    showToast("error", data.detail || "Internal Server Error");
-                }
-            }
-        } catch (error) {
+        });
+        
+        // Close the "Remove Client" form
+        document.getElementById("btn_hide-remove-client-form").addEventListener("click", () => {
             closeFormDialog(removeClientFormDialog);
-            showToast("error", error.message || "Unexpected Error");
-        }
-    });
+        });
 
-    // Format phone number as (XXX) XXX-XXXX (blur/focus lost event listener)
-    document.getElementById("input_client-form_phone").addEventListener("blur", function() {
-        (this.value) && (this.value = formatPhoneNumber(this.value)); // see Helper Functions
-    });
+    //////////////////////
+    /* Form Submission */
+    ////////////////////
+
+        // Submit the "Remove Client" form
+        removeClientForm.addEventListener("submit", async(e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            try {
+                const response = await fetch(removeClientForm.action, {
+                    method: "POST",
+                    body: formData,
+                });
+
+                if (response.ok) {
+                    data = await response.json();
+                    // Close the form dialog
+                    closeFormDialog(removeClientFormDialog);
+                    // Remove the client from the all clients table
+                    removeClientFromAllClientsTable(data.client);
+                    // Show success toast notification
+                    showToast("success", data.detail);
+                } else {
+                    data = await response.json();
+                    if (response.status == 500) {
+                        closeFormDialog(removeClientFormDialog);
+                        showToast("error", data.detail || "Internal Server Error");
+                    }
+                }
+            } catch (error) {
+                closeFormDialog(removeClientFormDialog);
+                showToast("error", error.message || "Unexpected Error");
+            }
+        });
     //#endregion REMOVE CLIENT FORM
 
-    //#region CLIENT PROFILE FORM
+    //#region CLIENT QUOTE PROFILE FORM
     const clientQuoteProfileFormDialog = document.getElementById("dialog_client-quote-profile-form");
     const clientQuoteProfileForm = document.getElementById("form_client-quote-profile-form");
+    const servicesOptions = JSON.parse(document.getElementById("services-data").textContent);
+    let cachedQuoteProfiles = [];
+    
+    ////////////////////////
+    /* Open/Close Events */
+    //////////////////////
 
-    // Add Event Listener - Open the Client Quote Profile Form (click event listener)
-    document.querySelectorAll('[id^="btn_show-client-quote-profile-form-"]').forEach((btn) => {
-        btn.addEventListener("click", () => {
-            // Populate client quote form with the client's data
-            document.getElementById("p_client-quote-profile-form_name-placeholder").innerText = btn.dataset.name;
-            document.getElementById("p_client-quote-profile-form_business-name-placeholder").innerText = btn.dataset.businessName;
-            document.getElementById("p_client-quote-profile-form_billing-address-1-placeholder").innerText = btn.dataset.streetAddress;
-            document.getElementById("p_client-quote-profile-form_billing-address-2-placeholder").innerText = `${btn.dataset.city}, ${btn.dataset.state} ${btn.dataset.zipCode}`;
-            document.getElementById("input_client-quote-profile-form_client-id").value = btn.dataset.clientId;
-
-            // Check if client already has a quote profile
-            fetch(`/clients/api/quote_profile/${btn.dataset.clientId}`)
-            .then(response => (response.status === 200) ? response.json() : null)
-            .then(data => {
-                if (data) {
-                    populateClientQuoteProfile(data);
-                } else {
-                    addRowToClientQuoteProfileServicesTable();
-                }
-            })
-            .catch(error => {
-                console.log('Error fetching client quote profile:', error);
+        // Open the Client Quote Profile Form*
+        document.querySelectorAll('[id^="btn_show-client-quote-profile-form-"]').forEach((btn) => {
+            btn.addEventListener("click", (e) => {
+                openClientQuoteProfileForm(e.currentTarget);
             });
-
-            openFormDialog(clientQuoteProfileFormDialog);
         });
-    });
 
-    // Add a service row to the Client Quote Profile Form (click event listener)
-    document.getElementById("btn_add-client-service").addEventListener("click", () => {
-        addRowToClientQuoteProfileServicesTable();
-    });
+        // Close the Client Quote Profile Form
+        document.getElementById("btn_hide-client-quote-profile-form").addEventListener("click", () => {
+            document.getElementById("tbody_client-quote-profile-services").innerHTML = "";
+            closeFormDialog(clientQuoteProfileFormDialog);
+        });
 
-    // Close the Client Quote Profile Form (click event listener)
-    document.getElementById("btn_hide-client-quote-profile-form").addEventListener("click", () => {
-        document.getElementById("tbody_client-quote-profile-services").innerHTML = "";
-        closeFormDialog(clientQuoteProfileFormDialog);
-    });
+    //////////////////////
+    /* Form Submission */
+    ////////////////////
 
-    // Save the Client Quote Profile Form (click event listener)
-    document.getElementById("btn_save-client-quote-profile").addEventListener("click", () => {
-        // Set the form action
-        clientQuoteProfileForm.action = "/clients/save_quote_profile";
-    });
+        // Submit the Client Quote Profile Form
+        clientQuoteProfileForm.addEventListener("submit", async(e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            try {
+                // Use the current form's action (set by the button chosen in the form)
+                const response = await fetch(clientQuoteProfileForm.action, {
+                    method: "POST",
+                    body: formData,
+                });
 
-    // Generate & Send Quote from the Client Quote Profile Form (click event listener)
-    document.getElementById("btn_send-quote").addEventListener("click", () => {
-        // Set the form action
-        clientQuoteProfileForm.action = "/clients/send_quote";
-    });
-    //#endregion CLIENT PROFILE FORM
+                if (response.ok) {
+                    data = await response.json();
+                    // Close the form dialog
+                    closeFormDialog(clientQuoteProfileFormDialog);
+                    // Show success toast notification
+                    showToast("success", data.detail);
+                    // Add the new client quote profile to a JSON list for storing profiles created during this session (before page refresh)
+                    cachedQuoteProfiles.push(
+                        {
+                            "client_id": data.client_id,
+                            "quote_profile": {
+                                "client_id": data.quote_profile.client_id,
+                                "services": data.quote_profile.services,
+                                "grand_total": data.quote_profile.grand_total,
+                                "min_monthly_charge": data.quote_profile.min_monthly_charge,
+                            },
+                        },
+                    );
+                } else {
+                    data = await response.json();
+                    if (response.status == 422) {
+                        showToast("error", data.detail || "Unprocessable Entity Error");
+                    }
+                    else if (response.status == 500) {
+                        closeFormDialog(clientQuoteProfileFormDialog);
+                        showToast("error", data.detail || "Internal Server Error");
+                    }
+                }
+            } catch (error) {
+                closeFormDialog(clientQuoteProfileFormDialog);
+                showToast("error", error.message || "Unexpected Error");
+            }
+        });
 
-    //#region HELPER FUNCTIONS
+        // Save the Client Quote Profile Form
+        document.getElementById("btn_save-client-quote-profile").addEventListener("click", () => {
+            // Set the form action
+            clientQuoteProfileForm.action = "/clients/save_quote_profile";
+        });
+
+        // Generate & Send Quote from the Client Quote Profile Form
+        document.getElementById("btn_send-quote").addEventListener("click", () => {
+            // Set the form action
+            clientQuoteProfileForm.action = "/clients/send_quote";
+        });
+
+        // Add a service row to the Client Quote Profile Form
+        document.getElementById("btn_add-client-service").addEventListener("click", () => {
+            addRowToClientQuoteProfileServicesTable();
+        });
+    //#endregion CLIENT QUOTE PROFILE FORM
+
+    //#region FUNCTIONS
     /**
      * Open a form dialog.
      * @param {HTMLDialogElement} formDialog - The form dialog to open.
@@ -216,6 +246,7 @@ document.addEventListener("DOMContentLoaded", function() {
      * @returns {void}
      */
     function closeFormDialog(formDialog) {
+        document.getElementById("tbody_client-quote-profile-services").innerHTML = "";
         Array.from(formDialog.getElementsByTagName("input")).forEach((input) => {
             input.value = "";
         });
@@ -247,7 +278,116 @@ document.addEventListener("DOMContentLoaded", function() {
         }, 3800);
     }
 
-     /**
+    /**
+     * Format a phone number as (XXX) XXX-XXXX.
+     * @param {HTMLInputElement} eventElement - The phone number input element to format.
+     * @returns {void}
+     */
+    function formatPhoneInput(eventElement) {
+        formatPhoneNumber = (!/^[0-9]{10}$/.test(eventElement.value)) ? eventElement.value : `(${eventElement.value.slice(0,3)}) ${eventElement.value.slice(3,6)}-${eventElement.value.slice(6)}`;
+        (eventElement.value) && (eventElement.value = formatPhoneNumber);
+    }
+
+    /**
+     * Open the "Add New Client" version of the Client Form.
+     * @returns {void}
+     */
+    function openAddNewClientForm() {
+        // Set form header and button text
+        document.getElementById("h2_client-form-header").innerText = "Create New Client";
+        document.getElementById("btn_submit-client-form").innerText = "Add Client";
+        // Set the form action
+        clientForm.action = "/clients/add_client";
+        // Open the form dialog
+        openFormDialog(clientFormDialog);
+    }
+
+    /**
+     * Open the "Edit Client" version of the Client Form.
+     * @param {HTMLElement} eventElement - The button element that was clicked to open the form.
+     * @returns {void}
+     */
+    function openEditClientForm(eventElement) {
+        // Set form header and button text
+        document.getElementById("h2_client-form-header").innerText = "Edit Client Details";
+        document.getElementById("btn_submit-client-form").innerText = "Update";
+        // Set the form action
+        clientForm.action = "/clients/edit_client";
+        // Populate form with the client to edit's data
+        document.getElementById("input_client-form_name").value = eventElement.dataset.name;
+        document.getElementById("input_client-form_business-name").value = eventElement.dataset.businessName;
+        document.getElementById("input_client-form_street-address").value = eventElement.dataset.streetAddress;
+        document.getElementById("input_client-form_city").value = eventElement.dataset.city;
+        document.getElementById("input_client-form_state").value = eventElement.dataset.state;
+        document.getElementById("input_client-form_zip-code").value = eventElement.dataset.zipCode;
+        document.getElementById("input_client-form_email").value = eventElement.dataset.email;
+        document.getElementById("input_client-form_phone").value = eventElement.dataset.phone;
+        document.getElementById("input_client-form_client-id").value = eventElement.dataset.clientId;
+        // Open the form dialog
+        openFormDialog(clientFormDialog);
+    }
+
+    /**
+     * Open the "Remove Client" form.
+     * @param {HTMLElement} eventElement - The button element that was clicked to open the form.
+     * @returns {void}
+     */
+    function openRemoveClientForm(eventElement) {
+        // Populate the form with the client to remove's data
+        document.getElementById("p_remove-client-form_name-placeholder").innerText = eventElement.dataset.name;
+        document.getElementById("p_remove-client-form_business-name-placeholder").innerText = eventElement.dataset.businessName;
+        document.getElementById("input_remove-client-form_client-id").value = eventElement.dataset.clientId;
+        // Open the form dialog
+        openFormDialog(removeClientFormDialog);
+    }
+
+    /**
+     * Open the "Client Quote Profile" form.
+     * @param {HTMLElement} eventElement - The button element that was clicked to open the form.
+     */
+    function openClientQuoteProfileForm(eventElement) {
+        // Populate client quote form with the client's data
+        document.getElementById("p_client-quote-profile-form_name-placeholder").innerText = eventElement.dataset.name;
+        document.getElementById("p_client-quote-profile-form_business-name-placeholder").innerText = eventElement.dataset.businessName;
+        document.getElementById("p_client-quote-profile-form_billing-address-1-placeholder").innerText = eventElement.dataset.streetAddress;
+        document.getElementById("p_client-quote-profile-form_billing-address-2-placeholder").innerText = `${eventElement.dataset.city}, ${eventElement.dataset.state} ${eventElement.dataset.zipCode}`;
+        document.getElementById("input_client-quote-profile-form_client-id").value = eventElement.dataset.clientId;
+
+        // Check if the client has had a quote profile created during this session (before page refresh)
+        const cachedQuoteProfile = cachedQuoteProfiles.find(
+            quoteProfile => Number(eventElement.dataset.clientId) === Number(quoteProfile.client_id)
+        );
+        
+        if (cachedQuoteProfile) {
+            populateClientQuoteProfile(cachedQuoteProfile);
+            openFormDialog(clientQuoteProfileFormDialog);
+            return;
+        } else {
+            // Check if client has a quote profile in the database
+            fetch(`/clients/get_quote_profile/${eventElement.dataset.clientId}`)
+                .then(response => {
+                    if (response.status === 200) {
+                        return response.json();
+                    }
+                    else {
+                        // Add an empty service row to the Client Quote Profile Form
+                        addRowToClientQuoteProfileServicesTable();
+                        return null;
+                    }
+                })
+                .then(data => {
+                    if (data) {
+                        // Populate the Client Quote Profile Form with the client's existing quote profile data
+                        populateClientQuoteProfile(data);
+                    }
+                })
+            }
+
+        // Open the form dialog
+        openFormDialog(clientQuoteProfileFormDialog);
+    }
+
+    /**
      * Add a client to the all clients table.
      * @param {{ id: number, name: string, business_name: string, city: string, state: string, zip_code: string, email: string, phone: string}} client - The client as a JSON object containing the unique ID and data of the new client.
      * @returns {void}
@@ -288,9 +428,11 @@ document.addEventListener("DOMContentLoaded", function() {
             </svg>
         `;
 
-        // Create a new <tr> element and set its id and inner HTML
+        // Create a new <tr> element
         const newRow = document.createElement("tr");
+        // Set the id attribute of the new element
         newRow.id = `tr_client-${client.id}`;
+        // Set the inner HTML of the new element
         newRow.innerHTML = `
             <td class="p-4">${client.name}</td>
             <td class="p-4">${client.business_name}</td>
@@ -349,70 +491,21 @@ document.addEventListener("DOMContentLoaded", function() {
                 </button>
             </td>
         `;
-
-        // Append the new <tr> element to the table body
+        // Append the new element to the table body
         allClientsTableBody.appendChild(newRow);
 
-        // Add Event Listener - Open the "Edit Client" form (click event listener)
+        // Add event listeners to the new row's icon buttons
         document.getElementById(`btn_show-edit-client-form-${client.id}`).addEventListener("click", (e) => {
-            // Set form header, button text, and form action
-            document.getElementById("h2_client-form-header").innerText = "Edit Client Details";
-            document.getElementById("btn_submit-client-form").innerText = "Update";
-            clientForm.action = "/clients/edit_client";
-
-            // Populate form with the client to edit's data
-            document.getElementById("input_client-form_name").value = e.currentTarget.dataset.name;
-            document.getElementById("input_client-form_business-name").value = e.currentTarget.dataset.businessName;
-            document.getElementById("input_client-form_street-address").value = e.currentTarget.dataset.streetAddress;
-            document.getElementById("input_client-form_city").value = e.currentTarget.dataset.city;
-            document.getElementById("input_client-form_state").value = e.currentTarget.dataset.state;
-            document.getElementById("input_client-form_zip-code").value = e.currentTarget.dataset.zipCode;
-            document.getElementById("input_client-form_email").value = e.currentTarget.dataset.email;
-            document.getElementById("input_client-form_phone").value = e.currentTarget.dataset.phone;
-            document.getElementById("input_client-form_client-id").value = e.currentTarget.dataset.clientId;
-
-            openFormDialog(clientFormDialog);
+            // Open the "Edit Client" form
+            openEditClientForm(e.currentTarget);
         });
-
-        // Add Event Listener - Open the "Remove Client" form (click event listener)
         document.getElementById(`btn_show-remove-client-form-${client.id}`).addEventListener("click", (e) => {
-            // Populate the form with the client to remove's data
-            document.getElementById("p_remove-client-form_name-placeholder").innerText = e.currentTarget.dataset.name;
-            document.getElementById("p_remove-client-form_business-name-placeholder").innerText = e.currentTarget.dataset.businessName;
-            document.getElementById("input_remove-client-form_client-id").value = e.currentTarget.dataset.clientId;
-
-            openFormDialog(removeClientFormDialog);
+            // Open the "Remove Client" form
+            openRemoveClientForm(e.currentTarget);
         });
-
-        // Add Event Listener - Open the Client Quote Profile Form (click event listener)
         document.getElementById(`btn_show-client-quote-profile-form-${client.id}`).addEventListener("click", (e) => {
-            // Populate client quote form with the client's data
-            document.getElementById("p_client-quote-profile-form_name-placeholder").innerText = e.currentTarget.dataset.name;
-            document.getElementById("p_client-quote-profile-form_business-name-placeholder").innerText = e.currentTarget.dataset.businessName;
-            document.getElementById("p_client-quote-profile-form_billing-address-1-placeholder").innerText = e.currentTarget.dataset.streetAddress;
-            document.getElementById("p_client-quote-profile-form_billing-address-2-placeholder").innerText = e.currentTarget.dataset.city + ", " + e.currentTarget.dataset.state + " " + e.currentTarget.dataset.zipCode;
-            document.getElementById("input_client-quote-profile-form_client-id").value = e.currentTarget.dataset.clientId;
-
-            // Check if client already has a quote profile
-            fetch(`/clients/api/quote_profile/${e.currentTarget.clientId}`)
-            .then(response => (response.status === 200) ? response.json() : null)
-            .then(data => {
-                if (data) {
-                    populateClientQuoteProfile(data);
-                } else {
-                    addRowToClientQuoteProfileServicesTable();
-                }
-            })
-            .catch(error => {
-                console.log('Error fetching client quote profile:', error);
-            });
-
-            openFormDialog(clientQuoteProfileFormDialog);
-        });
-
-        // Add Event Listener - Add a service row to the Client Quote Profile Form (click event listener)
-        document.getElementById("btn_add-client-service").addEventListener("click", () => {
-            addRowToClientQuoteProfileServicesTable();
+            // Open the "Client Quote Profile" form
+            openClientQuoteProfileForm(e.currentTarget);
         });
     }
 
@@ -438,111 +531,118 @@ document.addEventListener("DOMContentLoaded", function() {
      */
     function removeClientFromAllClientsTable(client) {
         document.getElementById(`tr_client-${client.id}`).remove();
+
+        // Check the cached quote profiles for a profile with clien tid matching the removed client
+        const index = cachedQuoteProfiles.findIndex(
+            quoteProfile => Number(client.id) === Number(quoteProfile.client_id)
+        );
+        // If found, remove it from the list
+        if (index !== -1) {
+            cachedQuoteProfiles.splice(index, 1);
+        }
     }
 
     /**
      * Add a service row to the Client Quote Profile services table.
-     * @returns {Promise<void>}
+     * @returns {void}
      */
     function addRowToClientQuoteProfileServicesTable() {
-        return new Promise((resolve, reject) => {
-            const newRow = document.createElement("tr");
-            newRow.classList.add(`h-[2rem]`);
-            newRow.innerHTML = `
-                <!-- Service -->
-                <td class="p-2">
-                    <select name="service" class="cursor-pointer">
-                        <option value="-1" selected>--</option>
-                    </select>
-                    <!-- hidden input storing Service Name -->
-                    <input type="text" name="service-name" hidden>
-                </td>
-                <!-- Quantity -->
-                <td class="p-2">
-                    <input type="number" name="quantity" size="5" min="1" step="1" value="1" class="h-[2rem] p-2 border rounded-md text-base">
-                </td>
-                <!-- Per Unit -->
-                <td class="p-2">
-                    <select name="per-unit" class="cursor-pointer">
-                        <option value="-1" selected>--</option>
-                        <option value="per-visit">per visit</option>
-                        <option value="per-push">per push</option>
-                    </select>
-                </td>
-                <!-- Unit Price -->
-                <td class="p-2">
-                    <p name="p_unit-price" class="p-2"></p>
-                    <!-- hidden input storing Unit Price -->
-                    <input type="text" name="unit-price" hidden>
-                </td>
-                <!-- Tax -->
-                <td class="p-2">
-                    <input type="text" name="tax" size="5" class="h-[2rem] p-2 border rounded-md text-base">
-                </td>
-                <!-- Total Price -->
-                <td class="p-2">
-                    <p name="p_total-price" class="p-2"></p>
-                    <!-- hidden input storing Total Price -->
-                    <input type="text" name="total-price" hidden>
-                </td>
-            `;
-            document.getElementById("tbody_client-quote-profile-services").appendChild(newRow);
+        const tableIconHoverColor = clientQuoteProfileForm.dataset.tableIconHoverColor;
 
-            // Append an option for each service in the database to the service select element
-            fetch("/services/api/all")
-            .then(response => response.json())
-            .then(data => {
-                Array.from(data).forEach((service) => {
-                    const option = document.createElement("option");
+        // Icons
+        const newDeleteIconOutlined = `
+            <svg width="1.25rem", height="1.25rem" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
+            </svg>
+        `;
+        const newDeleteIconSolid = `
+            <svg width="1.25rem", height="1.25rem" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="${tableIconHoverColor}">
+                <path fill-rule="evenodd" d="M16.5 4.478v.227a48.816 48.816 0 0 1 3.878.512.75.75 0 1 1-.256 1.478l-.209-.035-1.005 13.07a3 3 0 0 1-2.991 2.77H8.084a3 3 0 0 1-2.991-2.77L4.087 6.66l-.209.035a.75.75 0 0 1-.256-1.478A48.567 48.567 0 0 1 7.5 4.705v-.227c0-1.564 1.213-2.9 2.816-2.951a52.662 52.662 0 0 1 3.369 0c1.603.051 2.815 1.387 2.815 2.951Zm-6.136-1.452a51.196 51.196 0 0 1 3.273 0C14.39 3.05 15 3.684 15 4.478v.113a49.488 49.488 0 0 0-6 0v-.113c0-.794.609-1.428 1.364-1.452Zm-.355 5.945a.75.75 0 1 0-1.5.058l.347 9a.75.75 0 1 0 1.499-.058l-.346-9Zm5.48.058a.75.75 0 1 0-1.498-.058l-.347 9a.75.75 0 0 0 1.5.058l.345-9Z" clip-rule="evenodd" />
+            </svg>
+        `;
 
-                    option.value = service.id;
-                    option.dataset.unitPrice = service.unit_price;
-                    option.innerText = service.name;
+        // Create a new <tr> element
+        const newRow = document.createElement("tr");
+        newRow.classList.add(`h-[2rem]`);
+        // Set the inner HTML of the new element
+        newRow.innerHTML = `
+            <!-- Service ("select"[0]) -->
+            <td class="p-2 min-w-full">
+                <select name="service" class="cursor-pointer min-w-full">
+                    <option value="-1" selected>--</option>
+                </select>
+            </td>
+            <!-- Quantity ("input"[0]) -->
+            <td class="p-2">
+                <input type="number" name="quantity" max-size="3" min="1" step="1" value="1" class="h-[2rem] p-2 border rounded-md text-base">
+            </td>
+            <!-- Per Unit ("select"[1]) -->
+            <td class="p-2 min-w-full">
+                <select name="per-unit" class="cursor-pointer min-w-full">
+                    <option value="-1" selected>--</option>
+                    <option value="per-visit">per visit</option>
+                    <option value="per-push">per push</option>
+                </select>
+            </td>
+            <!-- Unit Price ("input"[1]) -->
+            <td class="p-2">
+                <input type="text" name="unit-price" class="h-[2rem] p-2 border rounded-md text-base">
+            </td>
+            <!-- Tax ("input"[2]) -->
+            <td class="p-2">
+                <input type="text" name="tax" size="5" class="h-[2rem] p-2 border rounded-md text-base">
+            </td>
+            <!-- Total Price ("p"[0]) -->
+            <td class="p-2">
+                <p name="p_total-price" class="p-2"></p>
+                <!-- hidden input storing Total Price ("input"[3]) -->
+                <input type="text" name="total-price" hidden>
+            </td>
+            <!-- Remove Service Button -->
+            <td class="p-2">
+                <button
+                    id=""
+                    type="button"
+                    name="btn_remove-service"
+                    class="cursor-pointer"
+                >
+                    <div class="icon-wrapper overflow-hidden flex-shrink-0">
+                        <span class="icon outline">${newDeleteIconOutlined}</span>
+                        <span class="icon solid">${newDeleteIconSolid}</span>
+                    </div>
+                </button>
+            </td>
+        `;
+        // Append the new element to the table body
+        document.getElementById("tbody_client-quote-profile-services").appendChild(newRow);
+        // Create a new <option> element for each service and append to the new row's service <select> element
+        Array.from(servicesOptions).forEach((service) => {
+            const option = document.createElement("option");
+            option.value = service.name;
+            option.innerText = service.name;
+            option.dataset.unitPrice = service.unit_price;
+            newRow.getElementsByTagName("select")[0].appendChild(option);
+        });
 
-                    newRow.getElementsByTagName("select")[0].appendChild(option);
-                });
-                resolve();
-            })
-            .catch(error => {
-                console.log('Error fetching services:', error);
-                reject(error);
-            });
-
-            const serviceSelect = newRow.getElementsByTagName("select")[0];
-            const inputQuantity = newRow.getElementsByTagName("input")[1];
-            const unitPrice = newRow.getElementsByTagName("p")[0];
-            const tax = newRow.getElementsByTagName("input")[3];
-            const totalPrice = newRow.getElementsByTagName("p")[1];
-            
-            const inputServiceName = newRow.getElementsByTagName("input")[0];
-            const inputUnitPrice = newRow.getElementsByTagName("input")[2];
-            const inputTotalPrice = newRow.getElementsByTagName("input")[4];
-
-            // Populate unit price based on selected service (change event listener)
-            serviceSelect.addEventListener("change", () => {
-                if (serviceSelect.value != -1) {
-                    const serviceUnitPrice = serviceSelect.options[serviceSelect.selectedIndex].dataset.unitPrice;
-                    unitPrice.innerText = Number(serviceUnitPrice).toFixed(2);
-
-                    // Update service name and unit price hidden inputs
-                    inputServiceName.value = serviceSelect.options[serviceSelect.selectedIndex].innerText;
-                    inputUnitPrice.value = Number(serviceUnitPrice).toFixed(2);
-                } else {
-                    unitPrice.innerText = "";
-                    inputServiceName.value = "";
-                    inputUnitPrice.value = "";
-                }
-            });
-
-            // Update total price based on quantity, unit price, and tax (change event listener)
-            newRow.addEventListener("change", (event) => {
-                if (serviceSelect.value != -1 && inputQuantity.value != null && inputQuantity.value != "" && tax.value != null && tax.value != "") {
-                    const basePrice = Number(inputQuantity.value) * Number(unitPrice.innerText);
-                    const taxAmount = Number(tax.value / 100) * basePrice;
-                    totalPrice.innerText = Number(basePrice + taxAmount).toFixed(2);
-                    inputTotalPrice.value = totalPrice.innerText;
-                }
-            });
+        // Add event listeners to the new row
+        newRow.getElementsByTagName("button")[0].addEventListener("click", (e) => {
+            // Remove a service row from the Client Quote Profile services table
+            removeServiceFromClientQuoteProfileServicesTable(e.currentTarget);
+        });
+        newRow.getElementsByTagName("select")[0].addEventListener("change", () => {
+            // Populate unit price based on selected service
+            const unitPrice = newRow.getElementsByTagName("select")[0].options[newRow.getElementsByTagName("select")[0].selectedIndex].dataset.unitPrice;
+            newRow.getElementsByTagName("input")[1].value = Number(unitPrice).toFixed(2);
+        });
+        newRow.addEventListener("change", (e) => {
+            // Update total price based on quantity, unit price, and tax
+            // Base price = quantity * unit price
+            const basePrice = Number(newRow.getElementsByTagName("input")[0].value) * Number(newRow.getElementsByTagName("input")[1].value);
+            // Tax amount = (tax / 100) * base price
+            const taxAmount = (Number(newRow.getElementsByTagName("input")[2].value) / 100.00) * basePrice;
+            // Total price = base price + tax amount
+            newRow.getElementsByTagName("p")[0].innerText = Number(basePrice + taxAmount).toFixed(2);
+            newRow.getElementsByTagName("input")[3].value = Number(basePrice + taxAmount);
         });
     }
 
@@ -550,38 +650,32 @@ document.addEventListener("DOMContentLoaded", function() {
      * Populate the Client Quote Profile services table with existing data.
      * @param {void} data 
      */
-    async function populateClientQuoteProfile(data) {
+    function populateClientQuoteProfile(data) {
         const servicesTable = document.getElementById("tbody_client-quote-profile-services");
+        servicesTable.innerHTML = "";
         
-        document.getElementById("input_client-quote-profile-form_min-monthly-charge").value = Number(data.min_monthly_charge).toFixed(2);
-        
-        for (let i = 0; i < data.services.length; ++i) {
-            await addRowToClientQuoteProfileServicesTable();
+        // Populate the minimum monthly charge
+        document.getElementById("input_client-quote-profile-form_min-monthly-charge").value = Number(data.quote_profile.min_monthly_charge).toFixed(2);
+        // Add and popualte a service row for each existing service in the client's quote profile
+        for (let i = 0; i < data.quote_profile.services.length; ++i) {
+            addRowToClientQuoteProfileServicesTable();
             const newRow = servicesTable.lastElementChild;
-
-            newRow.getElementsByTagName("select")[0].value = data.services[i].service_id;
-            newRow.getElementsByTagName("input")[1].value = data.services[i].quantity;
-            newRow.getElementsByTagName("select")[1].value = data.services[i].per_unit;
-            newRow.getElementsByTagName("p")[0].innerText = Number(data.services[i].unit_price).toFixed(2);
-            newRow.getElementsByTagName("input")[3].value = Number(data.services[i].tax).toFixed(2);
-            newRow.getElementsByTagName("p")[1].innerText = Number(data.services[i].total_price).toFixed(2);
-
-            // hidden inputs
-            newRow.getElementsByTagName("input")[0].value = data.services[i].service_name;
-            inputUnitPrice = newRow.getElementsByTagName("input")[2].value = data.services[i].unit_price;
-            newRow.getElementsByTagName("input")[4].value = data.services[i].total_price;
+            newRow.getElementsByTagName("select")[0].value = data.quote_profile.services[i].service_name;
+            newRow.getElementsByTagName("input")[0].value = data.quote_profile.services[i].quantity;
+            newRow.getElementsByTagName("select")[1].value = data.quote_profile.services[i].per_unit;
+            newRow.getElementsByTagName("input")[1].value = Number(data.quote_profile.services[i].unit_price).toFixed(2);
+            newRow.getElementsByTagName("input")[2].value = Number(data.quote_profile.services[i].tax).toFixed(2);
+            newRow.getElementsByTagName("p")[0].innerText = Number(data.quote_profile.services[i].total_price).toFixed(2);
+            newRow.getElementsByTagName("input")[3].value = Number(data.quote_profile.services[i].total_price).toFixed(2);
         }
     }
 
-    // TODO - Remove a service row
-    function removeRowFromClientQuoteProfileServicesTable(rowNumber) {
-        document.getElementById(`tbl_row-${rowNumber}`).remove();
-        document.getElementById("input_client-quote-profile-form_services-count").value = Number(document.getElementById("input_client-quote-profile-form_services-count").value) - 1;
+    /**
+     * Remove a service row from the Client Quote Profile services table.
+     * @returns {void}
+     */
+    function removeServiceFromClientQuoteProfileServicesTable(eventElement) {
+        eventElement.parentElement.parentElement.remove();
     }
-
-    function formatPhoneNumber(digits) {
-        // return as-is if not 10 digits, otherwise format as (XXX) XXX-XXXX
-        return (!/^[0-9]{10}$/.test(digits)) ? digits : `(${digits.slice(0,3)}) ${digits.slice(3,6)}-${digits.slice(6)}`;
-    }
-    //#endregion HELPER FUNCTIONS
+    //#endregion FUNCTIONS
 }); 

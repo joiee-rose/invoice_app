@@ -10,7 +10,7 @@ from sqlmodel import Session, select
 
 import utils
 from database import get_session
-from models import Client, ClientQuoteProfile, Quote, AppSetting
+from models import Client, Service, ClientQuoteProfile, Quote, AppSetting
 from services import (
     ClientCRUD,
     ClientQuoteProfileCRUD,
@@ -49,11 +49,21 @@ def render_clients_page(
     Returns:
     - `HTMLResponse`: The rendered HTML content of the clients page.
     """
+    services = session.exec(select(Service)).all()
+    services_data = [
+        {
+            "id": service.id,
+            "name": service.name,
+            "unit_price": str(service.unit_price)
+        }
+        for service in services
+    ]
     return templates.TemplateResponse(
         request=request, 
         name="clients.html", 
         context={
             "clients": session.exec(select(Client)).all(),
+            "services": services_data,
             "theme": session.get(AppSetting, "0000").setting_value,
             "colorTheme": session.get(AppSetting, "0001").setting_value
         }
@@ -226,7 +236,8 @@ def remove_client(
     client_id: int = Form(..., alias="client-id")
 ) -> JSONResponse:
     """
-    Removes an existing client.
+    Removes an existing client. If the client has a client quote profile, it
+    will also be removed.
 
     Parameters:
     - session: A SQLModel session dependency for database access.
@@ -240,6 +251,17 @@ def remove_client(
     - HTTPException:
         - 500 (INTERNAL SERVER ERROR) for unexpected errors
     """
+    # Check if the client has a client quote profile
+    existing_client_quote_profile = session.get(ClientQuoteProfile, client_id)
+    # If the client has a client quote profile, delete it from the database
+    if existing_client_quote_profile:
+        delete_status, _ = utils.call_service_or_500(
+            ClientQuoteProfileCRUD.delete,
+            client_id,
+            session
+        )
+
+    # Delete the client from the database
     delete_status, client = utils.call_service_or_500(
         ClientCRUD.delete,
         client_id,
@@ -286,17 +308,15 @@ async def save_client_quote_profile(
     services = []
     grand_total = 0
 
-    service_ids = form.getlist("service")
-    service_names = form.getlist("service-name")
+    service_names = form.getlist("service")
     quantities = form.getlist("quantity")
     per_units = form.getlist("per-unit")
     unit_prices = form.getlist("unit-price")
     taxes = form.getlist("tax")
     total_prices = form.getlist("total-price")
 
-    for i in range(len(service_ids)):
+    for i in range(len(service_names)):
         services.append({
-            "service_id": service_ids[i],
             "service_name": service_names[i],
             "quantity": quantities[i],
             "per_unit": per_units[i],
@@ -340,6 +360,13 @@ async def save_client_quote_profile(
     return JSONResponse(
         content={
             "detail": status,
+            "client_id": client_quote_profile.client_id,
+            "quote_profile": {
+                "client_id": client_quote_profile.client_id,
+                "services": client_quote_profile.services,
+                "grand_total": str(client_quote_profile.grand_total),
+                "min_monthly_charge": str(client_quote_profile.min_monthly_charge),
+            },
         },
         status_code=200,
     )
@@ -495,21 +522,26 @@ async def send_quote(
     
     return RedirectResponse(url="/clients/", status_code=303)
 
-@router.get("/api/quote_profile/{client_id}", response_class=HTMLResponse)
-async def api_get_client_quote_profile(
+@router.get("/get_quote_profile/{client_id}", response_class=JSONResponse)
+async def get_client_quote_profile(
     session: SessionDependency,
     client_id: int
-) -> HTMLResponse:
-    try:
-        client_quote_profile = session.get(ClientQuoteProfile, client_id)
-        if not client_quote_profile:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Client has no quote profile."
-            )
-        return HTMLResponse(content=client_quote_profile.model_dump_json(), status_code=200)
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=str(e)
-        )
+) -> JSONResponse:
+    get_status, quote_profile = utils.call_service_or_404(
+        ClientQuoteProfileCRUD.get,
+        client_id,
+        session
+    )
+
+    return JSONResponse(
+        content={
+            "detail": get_status,
+            "quote_profile": {
+                "client_id": quote_profile.client_id,
+                "services": quote_profile.services,
+                "grand_total": str(quote_profile.grand_total),
+                "min_monthly_charge": str(quote_profile.min_monthly_charge),
+            },
+        },
+        status_code=200,
+    )
