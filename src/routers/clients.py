@@ -283,7 +283,8 @@ async def save_client_quote_profile(
     request: Request,
     session: SessionDependency,
     client_id: int = Form(..., alias="client-id"),
-    min_monthly_charge: Decimal = Form(..., alias="min-monthly-charge")
+    min_monthly_charge: Decimal = Form(..., alias="min-monthly-charge"),
+    premium_salt_upcharge: Decimal = Form(..., alias="premium-salt-upcharge"),
 ) -> JSONResponse:
     """
     Save the client's quote profile. If a quote profile already exists for the 
@@ -294,6 +295,7 @@ async def save_client_quote_profile(
     - session: A SQLModel session dependency for database access.
     - client_id: The unique ID of the client.
     - min_monthly_charge: The minimum monthly charge for the client.
+    - premium_salt_upcharge: The premium salt up-charge cost for the client.
 
     Returns:
     - `JSONResponse`: A JSON object containing a status message and status code.
@@ -327,13 +329,14 @@ async def save_client_quote_profile(
         grand_total += Decimal(form.getlist("total-price")[i]) 
 
     # Validate the new client quote profile data
-    validate_status, new_client_quote_profile = utils.call_service_or_422(
+    _, new_client_quote_profile = utils.call_service_or_422(
         ClientQuoteProfileCRUD.validate_data,
         ClientQuoteProfile(
             client_id=client_id,
+            min_monthly_charge=min_monthly_charge,
+            premium_salt_upcharge=premium_salt_upcharge,
             services=services,
-            grand_total=grand_total,
-            min_monthly_charge=min_monthly_charge
+            grand_total=grand_total
         )
     )
 
@@ -363,9 +366,14 @@ async def save_client_quote_profile(
             "client_id": client_quote_profile.client_id,
             "quote_profile": {
                 "client_id": client_quote_profile.client_id,
+                "min_monthly_charge": str(
+                    client_quote_profile.min_monthly_charge
+                ),
+                "premium_salt_upcharge": str(
+                    client_quote_profile.premium_salt_upcharge
+                ),
                 "services": client_quote_profile.services,
-                "grand_total": str(client_quote_profile.grand_total),
-                "min_monthly_charge": str(client_quote_profile.min_monthly_charge),
+                "grand_total": str(client_quote_profile.grand_total)
             },
         },
         status_code=200,
@@ -376,7 +384,8 @@ async def send_quote(
     request: Request,
     session: SessionDependency,
     client_id: int = Form(..., alias="client-id"),
-    min_monthly_charge: Decimal = Form(..., alias="min-monthly-charge")
+    min_monthly_charge: Decimal = Form(..., alias="min-monthly-charge"),
+    premium_salt_upcharge: Decimal = Form(..., alias="premium-salt-upcharge"),
 ):
     """
     Send a quote as a PDF to the client via email.
@@ -399,17 +408,15 @@ async def send_quote(
     services = []
     grand_total = 0
 
-    service_ids = form.getlist("service")
-    service_names = form.getlist("service-name")
+    service_names = form.getlist("service")
     quantities = form.getlist("quantity")
     per_units = form.getlist("per-unit")
     unit_prices = form.getlist("unit-price")
     taxes = form.getlist("tax")
     total_prices = form.getlist("total-price")
 
-    for i in range(len(service_ids)):
+    for i in range(len(service_names)):
         services.append({
-            "service_id": service_ids[i],
             "service_name": service_names[i],
             "quantity": quantities[i],
             "per_unit": per_units[i] if per_units[i] != "-1" else "--",
@@ -417,14 +424,14 @@ async def send_quote(
             "tax": taxes[i],
             "total_price": total_prices[i]
         })
-        grand_total += Decimal(form.getlist("total-price")[i])
+        grand_total += Decimal(form.getlist("total-price")[i]) 
 
     # Get the client from the database
     client = session.get(Client, client_id)
 
     # Get the number of quotes existing for the client and generate a quote
     # number for the quote based on that value and the client's unique id
-    get_status, num_quotes = utils.call_service_or_500(
+    _, num_quotes = utils.call_service_or_500(
         QuoteCRUD.count_by_client_id,
         client_id,
         session
@@ -432,7 +439,7 @@ async def send_quote(
     quote_no = f"{client_id}-{str(num_quotes + 1).zfill(4)}"
 
     # Get the path to save quote PDFs to from app settings (id: 3000)
-    get_status, app_setting = utils.call_service_or_404(
+    _, app_setting = utils.call_service_or_404(
         AppSettingCRUD.get,
         "3000",
         session
@@ -440,18 +447,20 @@ async def send_quote(
     pdf_save_path = app_setting.setting_value
 
     # Generate HTML source for the quote pdf
-    generate_status, html_source = utils.call_service_or_500(
+    _, html_source = utils.call_service_or_500(
         PDFServices.generate_html_source,
         file_type="quote",
         client=client,
         invoice_no=None,
         quote_no=quote_no,
+        min_monthly_charge=min_monthly_charge,
+        premium_salt_upcharge=premium_salt_upcharge,
         services=services,
         grand_total=grand_total
     )
 
     # Save the PDF
-    pdf_status = utils.call_service_or_500(
+    _ = utils.call_service_or_500(
         PDFServices.save_pdf,
         file_type="quote",
         client=client,
@@ -462,7 +471,7 @@ async def send_quote(
     )
 
     # Get the quote email body from app settings (id: 3001)
-    get_status, app_setting = utils.call_service_or_404(
+    _, app_setting = utils.call_service_or_404(
         AppSettingCRUD.get,
         "3001",
         session
@@ -477,16 +486,11 @@ async def send_quote(
         "{{client.street_address}}",
         client.street_address
     )
-    # Client Quote Minimum Monthly Charge
-    quote_email_body = quote_email_body.replace(
-        "{{min_monthly_charge}}",
-        f"{min_monthly_charge:.2f}"
-    )
     # User's Business Email
     # User's Business Phone No.
 
     # Send the email
-    email_status, message = await utils.call_async_service_or_500(
+    _, _ = await utils.call_async_service_or_500(
         EmailServices.send_email,
         subject="M&M Quote Request",
         recipients=[client.email],
@@ -504,7 +508,7 @@ async def send_quote(
     )
 
     # Validate the new quote data
-    validate_status, new_quote = utils.call_service_or_422(
+    _, new_quote = utils.call_service_or_422(
         QuoteCRUD.validate_data,
         Quote(
             client_id=client_id,
@@ -514,7 +518,7 @@ async def send_quote(
     )
     
     # Create the new quote in the database
-    create_status, quote = utils.call_service_or_500(
+    _, quote = utils.call_service_or_500(
         QuoteCRUD.create,
         new_quote,
         session
@@ -538,9 +542,10 @@ async def get_client_quote_profile(
             "detail": get_status,
             "quote_profile": {
                 "client_id": quote_profile.client_id,
-                "services": quote_profile.services,
-                "grand_total": str(quote_profile.grand_total),
                 "min_monthly_charge": str(quote_profile.min_monthly_charge),
+                "premium_salt_upcharge": str(quote_profile.premium_salt_upcharge),
+                "services": quote_profile.services,
+                "grand_total": str(quote_profile.grand_total)
             },
         },
         status_code=200,

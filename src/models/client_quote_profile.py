@@ -7,6 +7,7 @@ class ClientQuoteProfile(SQLModel, table=True):
     # primary key is a foreign key to client table (1:1 relationship)
     client_id: int | None = Field(default=None, primary_key=True, foreign_key="client.id")
     # attributes
+    min_monthly_charge: Decimal
+    premium_salt_upcharge: Decimal
     services: List[Dict[str, Any]] | None = Field(default=None, sa_column=Column(JSON))
     grand_total: Decimal
-    min_monthly_charge: Decimal

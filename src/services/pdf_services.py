@@ -14,20 +14,23 @@ class PDFServices:
         client: Client,
         invoice_no: str | None,
         quote_no: str | None,
+        min_monthly_charge: Decimal,
+        premium_salt_upcharge: Decimal,
         services: List[Dict[str, Any]],
-        grand_total: Decimal
+        grand_total: Decimal,
     ) -> tuple[bool, str, str | None]:
         """
-        Generates the HTML source used by xhtml2pdf to render the quote or
-        invoice PDF.
+        Generates the HTML used by xhtml2pdf to render the quote or invoice PDF.
 
         Parameters:
-        - file_type: str - The type of the file being generated (e.g., "invoice" or "quote").
-        - client: Client - The client for whom the invoice or quote is being generated.
-        - invoice_no: str | None - The invoice number (if applicable).
-        - quote_no: str | None - The quote number (if applicable).
-        - services: List[Dict[str, Any]] - A list of services included in the invoice or quote.
-        - grand_total: Decimal - The grand total amount for the invoice or quote.
+        - file_type: The type of the file being generated (e.g., "invoice" or "quote").
+        - client: The client for whom the invoice or quote is being generated.
+        - invoice_no: The invoice number (if applicable).
+        - quote_no: The quote number (if applicable).
+        - services: A list of services included in the invoice or quote.
+        - grand_total: The grand total amount for the invoice or quote.
+        - min_monthly_charge: The minimum monthly charge for the quote.
+        - include_service_disclosure: Whether to include service disclosure in the quote.
 
         Returns:
         - tuple[bool, str]:
@@ -35,6 +38,7 @@ class PDFServices:
             - str - The generated HTML source as a string (if bool is true), or an error message (if bool is false).
         """
         try:
+            # Generate the services table from the services list
             table_body_rows = ""
             for service in services:
                 table_body_rows += f"""
@@ -42,10 +46,73 @@ class PDFServices:
                         <td style="padding-left:4px; text-align:left;">{service.get("service_name", "")}</td>            
                         <td style="text-align:center;">{service.get("quantity", "")}</td>
                         <td style="text-align:center;">{service.get("per_unit", "")}</td>
-                        <td style="text-align:center;">{service.get("unit_price", "")}</td>
-                        <td style="text-align:center;">{service.get("tax", "")}</td>
-                        <td style="text-align:center;">{service.get("total_price", "")}</td>
+                        <td style="text-align:center;">{Decimal(service.get("unit_price", "")).quantize(Decimal("0.00"))}</td>
+                        <td style="text-align:center;">{Decimal(service.get("tax", "")).quantize(Decimal("0.00"))}</td>
+                        <td style="text-align:center;">{Decimal(service.get("total_price", "")).quantize(Decimal("0.00"))}</td>
                     </tr>
+                """
+
+            # Client Information
+            client_info = ""
+            if (client.name == client.business_name):
+                client_info = f"""
+                    <table width="100%" style="border:none; margin-bottom:24px;">
+                        <tr>
+                            <td style="text-align:left; font-size:12px;">{client.name}</td>
+                            {f'<td style="text-align:right; font-size:12px;">Invoice No.: {invoice_no}</td>' if file_type == "invoice" else f'<td style="text-align:right; font-size:12px;">Quote No.: {quote_no}</td>'}
+                        </tr>
+                        <tr>
+                            <td style="text-align:left; font-size:12px;">{client.street_address}</td>
+                            <td style="text-align:right; font-size:12px;">Issue Date: {datetime.now().strftime("%m/%d/%Y")}</td>
+                        </tr>
+                        <tr><td style="font-size:12px;">{client.city + ", " + client.state + " " + client.zip_code}</td></tr>
+                    </table>
+                """
+            else:
+                client_info = f"""
+                    <table width="100%" style="border:none; margin-bottom:24px;">
+                        <tr>
+                            <td style="text-align:left; font-size:12px;">{client.name}</td>
+                            {f'<td style="text-align:right; font-size:12px;">Invoice No.: {invoice_no}</td>' if file_type == "invoice" else f'<td style="text-align:right; font-size:12px;">Quote No.: {quote_no}</td>'}
+                        </tr>
+                        <tr>
+                            <td style="text-align:left; font-size:12px;">{client.business_name}</td>
+                            <td style="text-align:right; font-size:12px;">Issue Date: {datetime.now().strftime("%m/%d/%Y")}</td>
+                        </tr>
+                        <tr><td style="font-size:12px;">{client.street_address}</td></tr>
+                        <tr><td style="font-size:12px;">{client.city + ", " + client.state + " " + client.zip_code}</td></tr>
+                    </table>
+                """
+
+            # Service Disclosure
+            service_disclosure = ""
+            if (file_type == "quote"):
+                service_disclosure = f"""
+                    <div style="font-size:12px;">
+                        <h2 style="font-size:14px;">Service Disclosure</h2>
+                        <p>2" Trigger (with a tolerance of 0.5", hence the 1.5")</p>
+                        <ul>
+                            <li>Snow accumulations less than the threshold will receive the deice services. In the event of sleet, ice, or wet roads with freezing temperatures, we will provide deice services.</li>
+                        </ul>
+                        <p>Over the 2" Trigger</p>
+                        <ul>
+                            <li>We will plow and shovel, then provide deice services.</li>
+                            <li>Black top surfaces will receive rock salt.</li>
+                                <ul>
+                                    <li>
+                                        For temperatures below 17 degrees, black top surfaces will receive premium salt, as rock salt rapidly loses effectiveness every degree below 17 degrees. Premium salt will reduce the number of visits needed, therefore saving you money in the long run.
+                                        The upcharge cost for when the premium salt is used will be ${Decimal(premium_salt_upcharge).quantize(Decimal("0.00"))}.
+                                    </li>
+                                </ul>
+                            <li>Concrete surfaces will receive calcium chloride.</li>
+                        </ul>
+                        <div style="font-size:12px;">
+                            <p>Service period is from 11/1/2025 to 3/31/2026.</p>
+                        </div>
+                        <div style="font-size:12px;">
+                            <p>There will be a minimum monthly charge of ${Decimal(min_monthly_charge).quantize(Decimal("0.00"))} if this price is not exceeded by normal services. This minimum covers our costs in a period where we do not need to provide any services, but we still have trucks equipped and ready to go, salt piles and supplies stocked, and employees on call.</p>
+                        </div>
+                    </div>
                 """
 
             html_source = f"""
@@ -64,21 +131,10 @@ class PDFServices:
                         </table>
 
                         <!-- Client Information & Invoice Information -->
-                        <table width="100%" style="border:none; margin-bottom:24px;">
-                            <tr>
-                                <td style="text-align:left; font-size:12px;">{client.name}</td>
-                                {f'<td style="text-align:right; font-size:12px;">Invoice No.: {invoice_no}</td>' if file_type == "invoice" else f'<td style="text-align:right; font-size:12px;">Quote No.: {quote_no}</td>'}
-                            </tr>
-                            <tr>
-                                <td style="text-align:left; font-size:12px;">{client.business_name}</td>
-                                <td style="text-align:right; font-size:12px;">Issue Date: {datetime.now().strftime("%m/%d/%Y")}</td>
-                            </tr>
-                            <tr><td style="font-size:12px;">{client.street_address}</td></tr>
-                            <tr><td style="font-size:12px;">{client.city + ", " + client.state + " " + client.zip_code}</td></tr>
-                        </table>
+                        {client_info}
 
                         <!-- Services Table -->
-                        <table width="100%" style="border-collapse:collapse;">
+                        <table width="100%" style="border-collapse:collapse; margin-bottom:24px;">
                             <thead>
                                 <tr style="height:24px; padding-top:4px; font-size:14px; background-color:#d4d4d8; border:1px solid #000;">
                                     <th width="30%" style="text-align:center;">SERVICE</th>
@@ -101,6 +157,9 @@ class PDFServices:
                                 </tr>
                             </tbody>
                         </table>
+
+                        <!-- Service Disclosure -->
+                        {service_disclosure}
                     </body>
                 </html>
             """

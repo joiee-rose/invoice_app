@@ -42,7 +42,39 @@ async def lifespan(app: FastAPI):
         # 2000 series: Service Settings
         # 3000 series: Quotes Settings
         AppSetting(id="3000", category="quotes", setting_name="quote-save-pdfs-to-path", setting_value=quotes_dir),
-        AppSetting(id="3001", category="quotes", setting_name="quote-email-body", setting_value=""),
+        AppSetting(
+            id="3001",
+            category="quotes",
+            setting_name="quote-email-body",
+            setting_value=(
+                "Dear {{client.name}},\n\n"
+
+                "M&M Concrete Designs is a fully insured and licensed "
+                "contractor based out of Evans City, PA, specializing in "
+                "intricate concrete designs and winter services. We provide "
+                "snow/ice removal at the lowest prices in the market because "
+                "we are very specific about the route and type of properties "
+                "we service. We were happy to find that your property at "
+                "{{client.street_address}} fits within our established snow "
+                "removal route.\n\n"
+
+                "Attached is a snow/ice removal quote for the services we "
+                "expect to provide at your property. You may want to customize "
+                "these services based on your needs. This can be done by "
+                "calling or emailing us at the contacts below.\n\n"
+
+                "We look forward to helping you get through the winter!\n\n"
+
+                "M&M Concrete Designs\n"
+                "{{user.business_email}}\n"
+                "{{user.phone}}\n\n"
+
+                "** Please Note: While this quote is intended to be as "
+                "accurate as possible, our prices are subject to change. A "
+                "final quote will be provided after we discuss the specifics "
+                "of your property and your desired services."
+            ),
+        ),
         # 4000 series: Invoices Settings
         AppSetting(id="4000", category="invoices", setting_name="invoice-save-pdfs-to-path", setting_value=invoices_dir),
         AppSetting(id="4001", category="invoices", setting_name="invoice-email-body", setting_value="")

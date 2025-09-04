@@ -189,9 +189,10 @@ document.addEventListener("DOMContentLoaded", async function() {
                             "client_id": data.client_id,
                             "quote_profile": {
                                 "client_id": data.quote_profile.client_id,
+                                "min_monthly_charge": data.quote_profile.min_monthly_charge,
+                                "premium_salt_upcharge": data.quote_profile.premium_salt_upcharge,
                                 "services": data.quote_profile.services,
                                 "grand_total": data.quote_profile.grand_total,
-                                "min_monthly_charge": data.quote_profile.min_monthly_charge,
                             },
                         },
                     );
@@ -567,18 +568,18 @@ document.addEventListener("DOMContentLoaded", async function() {
         // Set the inner HTML of the new element
         newRow.innerHTML = `
             <!-- Service ("select"[0]) -->
-            <td class="p-2 min-w-full">
-                <select name="service" class="cursor-pointer min-w-full">
+            <td class="p-2">
+                <select name="service" class="w-full cursor-pointer">
                     <option value="-1" selected>--</option>
                 </select>
             </td>
             <!-- Quantity ("input"[0]) -->
             <td class="p-2">
-                <input type="number" name="quantity" max-size="3" min="1" step="1" value="1" class="h-[2rem] p-2 border rounded-md text-base">
+                <input type="number" name="quantity" size="3" min="1" step="1" value="1" class="h-[2rem] p-2 border rounded-md text-base">
             </td>
             <!-- Per Unit ("select"[1]) -->
-            <td class="p-2 min-w-full">
-                <select name="per-unit" class="cursor-pointer min-w-full">
+            <td class="p-2">
+                <select name="per-unit" class="cursor-pointer">
                     <option value="-1" selected>--</option>
                     <option value="per-visit">per visit</option>
                     <option value="per-push">per push</option>
@@ -656,7 +657,9 @@ document.addEventListener("DOMContentLoaded", async function() {
         
         // Populate the minimum monthly charge
         document.getElementById("input_client-quote-profile-form_min-monthly-charge").value = Number(data.quote_profile.min_monthly_charge).toFixed(2);
-        // Add and popualte a service row for each existing service in the client's quote profile
+        // Populate the premium salt upcharge cost
+        document.getElementById("input_client-quote-profile-form_premium-salt-upcharge").value = Number(data.quote_profile.premium_salt_upcharge).toFixed(2);
+        // Add and populate a service row for each existing service in the client's quote profile
         for (let i = 0; i < data.quote_profile.services.length; ++i) {
             addRowToClientQuoteProfileServicesTable();
             const newRow = servicesTable.lastElementChild;

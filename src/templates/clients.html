@@ -266,10 +266,17 @@
         </div>
         <!-- Form -->
         <form id="form_client-quote-profile-form" method="post" data-table-icon-hover-color="{{ tableIconHoverColor }}">
-            <!-- Minimum Monthly Charge -->
-            <div class="w-3/10 flex flex-col mb-2">
-                <label for="input_client-quote-profile-form_min-monthly-charge" class="pr-2 text-base font-bold">Minimum Monthly Charge (USD):</label>
-                <input type="text" id="input_client-quote-profile-form_min-monthly-charge" name="min-monthly-charge" class="h-[2rem] p-2 border rounded-md text-base" required>
+            <div class="w-full mb-4 flex flex-col gap-2">
+                <div class="w-1/4 flex flex-col">
+                    <!-- Minimum Monthly Charge -->
+                    <label for="input_client-quote-profile-form_min-monthly-charge" class="pr-2 text-base font-bold">Minimum Monthly Charge (USD):</label>
+                    <input type="text" id="input_client-quote-profile-form_min-monthly-charge" name="min-monthly-charge" class="h-[2rem] p-2 border rounded-md text-base" required>
+                </div>
+                <div class="w-1/4 flex flex-col">
+                    <!-- Premium Salt Upcharge -->
+                    <label for="input_client-quote-profile-form_premium-salt-upcharge" class="pr-2 text-base font-bold">Premium Salt Upcharge (USD):</label>
+                    <input type="text" id="input_client-quote-profile-form_premium-salt-upcharge" name="premium-salt-upcharge" class="h-[2rem] p-2 border rounded-md text-base" required>
+                </div>
             </div>
             <!-- table of services for the client -->
             <div class="relative w-full h-full mb-4 overflow-auto flex flex-col bg-white shadow-md rounded-lg bg-clip-border">
