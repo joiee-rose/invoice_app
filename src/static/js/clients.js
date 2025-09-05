@@ -230,6 +230,23 @@ document.addEventListener("DOMContentLoaded", async function() {
         });
     //#endregion CLIENT QUOTE PROFILE FORM
 
+    //#region SEARCH
+    const searchInput = document.getElementById("input_search");
+    const searchBySelect = document.getElementById("select_search-by");
+
+    searchInput.addEventListener("input", function(e) {
+        clearAllClientsTableSearch();
+        if (searchInput === "") return;
+        searchAllClientsTable(e.currentTarget.value, searchBySelect.value);
+    });
+
+    searchBySelect.addEventListener("change", function(e) {
+        clearAllClientsTableSearch();
+        if (searchInput === "") return;
+        searchAllClientsTable(searchInput.value, e.currentTarget.value);
+    });
+    //#endregion SEARCH
+
     //#region FUNCTIONS
     /**
      * Open a form dialog.
@@ -679,6 +696,42 @@ document.addEventListener("DOMContentLoaded", async function() {
      */
     function removeServiceFromClientQuoteProfileServicesTable(eventElement) {
         eventElement.parentElement.parentElement.remove();
+    }
+
+    function searchAllClientsTable(searchInput, searchBy) {
+        const allClientsTableBody = document.getElementById("tbody_all-clients");
+        searchInput = searchInput.toLowerCase().trim();
+
+        allClientsTableBody.querySelectorAll("tr").forEach((row) => {
+            switch (searchBy) {
+                case "name":
+                    const name = row.getElementsByTagName("td")[0].innerText.toLowerCase().trim();
+                    (!name.includes(searchInput)) && (row.style.display = "none");
+                    break;
+                case "business-name":
+                    const businessName = row.getElementsByTagName("td")[1].innerText.toLowerCase().trim();
+                    (!businessName.includes(searchInput)) && (row.style.display = "none");
+                    break;
+                case "billing-address":
+                    const address = row.getElementsByTagName("td")[2].innerText.toLowerCase().trim();
+                    (!address.includes(searchInput)) && (row.style.display = "none");
+                    break;
+                case "email":
+                    const email = row.getElementsByTagName("td")[3].innerText.toLowerCase().trim();
+                    (!email.includes(searchInput)) && (row.style.display = "none");
+                    break;
+                 case "phone":
+                    const phone = row.getElementsByTagName("td")[4].innerText.toLowerCase().trim();
+                    (!phone.includes(searchInput)) && (row.style.display = "none");
+                    break;
+            }
+        });
+    }
+
+    function clearAllClientsTableSearch() {
+        document.getElementById("tbody_all-clients").querySelectorAll("tr").forEach((row) => {
+            row.style.display = "";
+        });
     }
     //#endregion FUNCTIONS
 }); 

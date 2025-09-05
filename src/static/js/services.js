@@ -139,6 +139,23 @@ document.addEventListener("DOMContentLoaded", function() {
         });
     //#endregion REMOVE SERVICE FORM
 
+    //#region SEARCH
+    const searchInput = document.getElementById("input_search");
+    const searchBySelect = document.getElementById("select_search-by");
+
+    searchInput.addEventListener("input", function(e) {
+        clearAllServicesTableSearch();
+        if (searchInput === "") return;
+        searchAllServicesTable(e.currentTarget.value, searchBySelect.value);
+    });
+
+    searchBySelect.addEventListener("change", function(e) {
+        clearAllServicesTableSearch();
+        if (searchInput === "") return;
+        searchAllServicesTable(searchInput.value, e.currentTarget.value);
+    });
+    //#endregion SEARCH
+
     //#region FUNCTIONS
     /**
      * Open a form dialog.
@@ -365,6 +382,34 @@ document.addEventListener("DOMContentLoaded", function() {
      */
     function removeServiceFromAllServicesTable(service) {
         document.getElementById(`tr_service-${service.id}`).remove();
+    }
+
+    function searchAllServicesTable(searchInput, searchBy) {
+        const allServicesTableBody = document.getElementById("tbody_all-services");
+        searchInput = searchInput.toLowerCase().trim();
+
+        allServicesTableBody.querySelectorAll("tr").forEach((row) => {
+            switch (searchBy) {
+                case "name":
+                    const name = row.getElementsByTagName("td")[0].innerText.toLowerCase().trim();
+                    (!name.includes(searchInput)) && (row.style.display = "none");
+                    break;
+                case "description":
+                    const description = row.getElementsByTagName("td")[1].innerText.toLowerCase().trim();
+                    (!description.includes(searchInput)) && (row.style.display = "none");
+                    break;
+                case "unit-price":
+                    const unitPrice = row.getElementsByTagName("td")[2].innerText.toLowerCase().trim();
+                    (!unitPrice.includes(searchInput)) && (row.style.display = "none");
+                    break;
+            }
+        });
+    }
+
+    function clearAllServicesTableSearch() {
+        document.getElementById("tbody_all-services").querySelectorAll("tr").forEach((row) => {
+            row.style.display = "";
+        });
     }
     //#endregion FUNCTIONS
 });

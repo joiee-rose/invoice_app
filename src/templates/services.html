@@ -66,13 +66,29 @@
 {% block content %}
     <!-- My Services -->
     <div class="flex flex-col">
+        <!-- Header and New Service Button -->
         <div class="mb-4 flex flex-row justify-between">
             <h1 class="text-3xl font-bold">My Services</h1>
             <button id="btn_show-new-service-form" class="h-[2.25rem] pl-4 pr-4 bg-{{ colorTheme }} rounded-md text-base font-semibold cursor-pointer">New Service</button>
         </div>
+        <!-- Search -->
+        <div class="w-full mb-4 relative">
+            <div class="absolute top-1/2 -translate-y-1/2 left-2">
+                {{ heroicon_outline("magnifying-glass", width="1.25rem", height="1.25rem", color=tableIconHoverColor) }}
+            </div>
+            <input type="text" id="input_search" name="search" class="h-[2.25rem] w-full p-2 pl-8 border-2 rounded-md text-base" placeholder="Search...">
+            <div class="absolute top-0 right-2 h-[2.25rem] flex items-center">
+                <span class="h-[1.5rem] w-0 border border-blue-400 rounded-md"></span>
+                <select id="select_search-by" class="h-[2.25rem] p-2 rounded-md cursor-pointer text-base font-medium leading-[2.25rem] focus:border-transparent focus:outline-none">
+                    <option value="name">by Name</option>
+                    <option value="description">by Description</option>
+                    <option value="unit-price">by Unit Price</option>
+                </select>
+            </div>
+        </div>
         <!-- table of current services -->
         <div class="relative w-full h-full overflow-auto flex flex-col bg-white shadow-md rounded-lg bg-clip-border">
-            <table class="w-full min-w-max table-auto text-left">
+            <table class="w-full table-auto text-left">
                 <thead>
                     <tr class="h-[2.25rem] bg-{{ colorTheme }} border-b">
                         <th class="w-[20%] p-4">Name</th>
@@ -87,34 +103,36 @@
                         <td class="p-4">{{ service.name }}</td>
                         <td class="p-4">{{ service.description }}</td>
                         <td class="p-4 text-center">{{ service.get_formatted_unit_price() }}</td>
-                        <td class="flex flex-row gap-4 p-4">
-                            <!-- Edit Service Buttons -->
-                            <button
-                                id="btn_show-edit-service-form-{{ service.id }}"
-                                data-name="{{ service.name }}"
-                                data-description="{{ service.description }}"
-                                data-unit-price="{{ service.unit_price }}"
-                                data-service-id="{{ service.id }}"
-                                class="cursor-pointer group"
-                            >
-                                <div class="icon-wrapper overflow-hidden flex-shrink-0">
-                                    <span class="icon outline">{{ heroicon_outline("pencil", width="1.25rem", height="1.25rem") }}</span>
-                                    <span class="icon solid">{{ heroicon_solid("pencil", width="1.25rem", height="1.25rem", color=tableIconHoverColor) }}</span>
-                                </div>
-                            </button>
-                            <!-- Remove Service Buttons -->
-                            <button
-                                id="btn_show-remove-service-form-{{ service.id }}"
-                                data-name="{{ service.name }}"
-                                data-description="{{ service.description }}"
-                                data-service-id="{{ service.id }}"
-                                class="cursor-pointer group"
-                            >
-                                <div class="icon-wrapper overflow-hidden flex-shrink-0">
-                                    <span class="icon outline">{{ heroicon_outline("trash", width="1.25rem", height="1.25rem") }}</span>
-                                    <span class="icon solid">{{ heroicon_solid("trash", width="1.25rem", height="1.25rem", color=tableIconHoverColor) }}</span>
-                                </div>
-                            </button>
+                        <td class="p-4 align-middle">
+                            <div class="h-full flex flex-row gap-4 items-center">
+                                <!-- Edit Service Buttons -->
+                                <button
+                                    id="btn_show-edit-service-form-{{ service.id }}"
+                                    data-name="{{ service.name }}"
+                                    data-description="{{ service.description }}"
+                                    data-unit-price="{{ service.unit_price }}"
+                                    data-service-id="{{ service.id }}"
+                                    class="cursor-pointer group"
+                                >
+                                    <div class="icon-wrapper overflow-hidden flex-shrink-0">
+                                        <span class="icon outline">{{ heroicon_outline("pencil", width="1.25rem", height="1.25rem") }}</span>
+                                        <span class="icon solid">{{ heroicon_solid("pencil", width="1.25rem", height="1.25rem", color=tableIconHoverColor) }}</span>
+                                    </div>
+                                </button>
+                                <!-- Remove Service Buttons -->
+                                <button
+                                    id="btn_show-remove-service-form-{{ service.id }}"
+                                    data-name="{{ service.name }}"
+                                    data-description="{{ service.description }}"
+                                    data-service-id="{{ service.id }}"
+                                    class="cursor-pointer group"
+                                >
+                                    <div class="icon-wrapper overflow-hidden flex-shrink-0">
+                                        <span class="icon outline">{{ heroicon_outline("trash", width="1.25rem", height="1.25rem") }}</span>
+                                        <span class="icon solid">{{ heroicon_solid("trash", width="1.25rem", height="1.25rem", color=tableIconHoverColor) }}</span>
+                                    </div>
+                                </button>
+                            </div>
                         </td>
                     </tr>
                     {% endfor %}
