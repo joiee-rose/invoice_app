@@ -1,4 +1,17 @@
 document.addEventListener("DOMContentLoaded", function() {
+    const toastType = localStorage.getItem("toastType");
+    const toastMessage = localStorage.getItem("toastMessage");
+
+    // Show stored toast message after a reload
+    if (toastType && toastMessage) {
+        setTimeout(() => {
+            showToast(toastType, toastMessage);
+            // Clear the message so it doesn't show again on next reload
+            localStorage.removeItem("toastType");
+            localStorage.removeItem("toastMessage");
+        }, 3);
+    }
+
     //#region SERVICE FORM
     const serviceFormDialog = document.getElementById("dialog_service-form");
     const serviceForm = document.getElementById("form_service-form");
@@ -43,16 +56,11 @@ document.addEventListener("DOMContentLoaded", function() {
                     data = await response.json();
                     // Close the form dialog
                     closeFormDialog(serviceFormDialog);
-                    if (serviceForm.action.endsWith("add_service")) {
-                        // Add the new service to the all services table
-                        addServiceToAllServicesTable(data.service);
-                    }
-                    else if (serviceForm.action.endsWith("edit_service")) {
-                        // Update the existing service in the all services table
-                        editServiceInAllServicesTable(data.service);
-                    }
-                    // Show success toast notification
-                    showToast("success", data.detail);
+                    // Store toast message before reload
+                    localStorage.setItem("toastType", "success");
+                    localStorage.setItem("toastMessage", data.detail);
+                    // Reload the page according to the redirect url provided in the JSON response body
+                    window.location.href = data.redirect_to;
                 } else {
                     data = await response.json();
                     if (response.status == 422) {
@@ -121,10 +129,11 @@ document.addEventListener("DOMContentLoaded", function() {
                     data = await response.json();
                     // Close the form dialog
                     closeFormDialog(removeServiceFormDialog);
-                    // Remove the service from the all services table
-                    removeServiceFromAllServicesTable(data.service);
-                    // Show success toast notification
-                    showToast("success", data.detail);
+                    // Store toast message before reload
+                    localStorage.setItem("toastType", "success");
+                    localStorage.setItem("toastMessage", data.detail);
+                    // Reload the page according to the redirect url provided in the JSON response body
+                    window.location.href = data.redirect_to;
                 } else {
                     data = await response.json();
                     if (response.status == 500) {
@@ -279,9 +288,58 @@ document.addEventListener("DOMContentLoaded", function() {
     }
 
     /**
+     * Search the all services table.
+     * @param {string} searchInput 
+     * @param {string} searchBy 
+     * @returns {void}
+     */
+    function searchAllServicesTable(searchInput, searchBy) {
+        const allServicesTableBody = document.getElementById("tbody_all-services");
+        searchInput = searchInput.toLowerCase().trim();
+
+        allServicesTableBody.querySelectorAll("tr").forEach((row) => {
+            switch (searchBy) {
+                case "name":
+                    const name = row.getElementsByTagName("td")[0].innerText.toLowerCase().trim();
+                    (!name.includes(searchInput)) && (row.style.display = "none");
+                    break;
+                case "description":
+                    const description = row.getElementsByTagName("td")[1].innerText.toLowerCase().trim();
+                    (!description.includes(searchInput)) && (row.style.display = "none");
+                    break;
+                case "unit-price":
+                    const unitPrice = row.getElementsByTagName("td")[2].innerText.toLowerCase().trim();
+                    (!unitPrice.includes(searchInput)) && (row.style.display = "none");
+                    break;
+            }
+        });
+    }
+
+    function clearAllServicesTableSearch() {
+        document.getElementById("tbody_all-services").querySelectorAll("tr").forEach((row) => {
+            row.style.display = "";
+        });
+    }
+    //#endregion FUNCTIONS
+
+    //#region DEPRECATED FUNCTIONS
+    /**
+     * Remove a service from the all services table.
+     * @param {{ id: number }} service - The service as a JSON object containing the unique ID of the removed service.
+     * @returns {void}
+     * 
+     * 09/08/2025 - This function is no longer used because the page reloads after a service is removed.
+     */
+    function removeServiceFromAllServicesTable(service) {
+        document.getElementById(`tr_service-${service.id}`).remove();
+    }
+
+    /**
      * Add a service to the all services table.
      * @param {{ id: number, name: string, description: string, unit_price: string}} service - The service as a JSON object containing the unique ID, name, description, and unit price of the new service.
      * @returns {void}
+     * 
+     * 09/08/2025 - This function is no longer used because the page reloads after a service is removed.
      */
     function addServiceToAllServicesTable(service) {
         const allServicesTableBody = document.getElementById("tbody_all-services");
@@ -366,6 +424,8 @@ document.addEventListener("DOMContentLoaded", function() {
      * Edit a service in the all services table.
      * @param {{ id: number, name: string, description: string, unit_price: string}} service - The service as a JSON object containing the unique ID, name, description, and unit price of the updated service.
      * @returns {void}
+     * 
+     * 09/08/2025 - This function is no longer used because the page reloads after a service is removed.
      */
     function editServiceInAllServicesTable(service) {
         const serviceRow = document.getElementById(`tr_service-${service.id}`);
@@ -374,42 +434,5 @@ document.addEventListener("DOMContentLoaded", function() {
         serviceRow.getElementsByTagName("td")[1].innerText = service.description;
         serviceRow.getElementsByTagName("td")[2].innerText = `$${Number(service.unit_price).toFixed(2)}`;
     }
-
-    /**
-     * Remove a service from the all services table.
-     * @param {{ id: number }} service - The service as a JSON object containing the unique ID of the removed service.
-     * @returns {void}
-     */
-    function removeServiceFromAllServicesTable(service) {
-        document.getElementById(`tr_service-${service.id}`).remove();
-    }
-
-    function searchAllServicesTable(searchInput, searchBy) {
-        const allServicesTableBody = document.getElementById("tbody_all-services");
-        searchInput = searchInput.toLowerCase().trim();
-
-        allServicesTableBody.querySelectorAll("tr").forEach((row) => {
-            switch (searchBy) {
-                case "name":
-                    const name = row.getElementsByTagName("td")[0].innerText.toLowerCase().trim();
-                    (!name.includes(searchInput)) && (row.style.display = "none");
-                    break;
-                case "description":
-                    const description = row.getElementsByTagName("td")[1].innerText.toLowerCase().trim();
-                    (!description.includes(searchInput)) && (row.style.display = "none");
-                    break;
-                case "unit-price":
-                    const unitPrice = row.getElementsByTagName("td")[2].innerText.toLowerCase().trim();
-                    (!unitPrice.includes(searchInput)) && (row.style.display = "none");
-                    break;
-            }
-        });
-    }
-
-    function clearAllServicesTableSearch() {
-        document.getElementById("tbody_all-services").querySelectorAll("tr").forEach((row) => {
-            row.style.display = "";
-        });
-    }
-    //#endregion FUNCTIONS
+    //#endregion DEPRECATED FUNCTIONS
 });

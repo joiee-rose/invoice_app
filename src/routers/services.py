@@ -29,7 +29,9 @@ SessionDependency = Annotated[Session, Depends(get_session)]
 @router.get("/", response_class=HTMLResponse)
 def render_services_page(
     request: Request,
-    session: SessionDependency
+    session: SessionDependency,
+    page: int = 1,
+    per_page: int = 12
 ) -> HTMLResponse:
     """
     Renders the services page.
@@ -37,15 +39,30 @@ def render_services_page(
     Parameters:
     - request: The incoming HTTP request object.
     - session: A SQLModel session dependency for database access.
+    - page: The current page of services being viewed in the table.
+    - per_page: The maximum number of services to show per page in the table.
 
     Returns:
     - `HTMLResponse`: The rendered HTML content of the services page.
     """
+    # Count the number of services (use for pagination)
+    all_services = session.exec(select(Service)).all()
+    total = len(all_services)
+    # Slice the list of all services based on the number of services per page
+    # to show
+    start = (page - 1) * per_page
+    end = start + per_page
+    services = all_services[start:end]
+    # Count the number of pages necessary to show all the services
+    total_pages = (total + per_page - 1) // per_page
+
     return templates.TemplateResponse(
         request=request,
         name="services.html",
         context={
-            "services": session.exec(select(Service)).all(),
+            "services": services,
+            "page": page,
+            "total_pages": total_pages,
             "theme": session.get(AppSetting, "0000").setting_value,
             "colorTheme": session.get(AppSetting, "0001").setting_value
         }
@@ -56,7 +73,9 @@ def add_service(
     session: SessionDependency,
     name: str = Form(...),
     unit_price: str = Form(..., alias="unit-price"),
-    description: str | None = Form(...)
+    description: str | None = Form(...),
+    page: int = 1,
+    per_page: int = 12
 ) -> JSONResponse:
     """
     Creates a new service.
@@ -65,7 +84,9 @@ def add_service(
     - session: A SQLModel session dependency for database access.
     - name: The name of the service.
     - unit_price: The unit price of the service.
-    -description: The description of the service, if applicable.
+    - description: The description of the service, if applicable.
+    - page: The current page of services being viewed in the table.
+    - per_page: The maximum number of services to show per page in the table.
 
     Returns:
     - `JSONResponse`: A JSON object containing a status message, status code, 
@@ -93,6 +114,17 @@ def add_service(
         session
     )
 
+    # Count total number of services after creation
+    total_services = len(session.exec(select(Service)).all())
+    # Determine the new number of pages needed
+    total_pages = (total_services + per_page - 1) // per_page
+
+    # If creating the new service caused a new page to be added, redirect to
+    # that new page (or the current page, if total_pages is an unexpected
+    # value)
+    if total_pages > page:
+        page = max(total_pages, page)
+
     return JSONResponse(
         content={
             "detail": create_status,
@@ -102,6 +134,7 @@ def add_service(
                 "description": service.description,
                 "unit_price": str(service.unit_price),
             },
+            "redirect_to": f"/services?page={page}",
         },
         status_code=200,
     )
@@ -112,7 +145,8 @@ def edit_service(
     new_name: str = Form(..., alias="name"),
     new_description: str | None = Form(..., alias="description"),
     new_unit_price: str = Form(..., alias="unit-price"),
-    service_id: int = Form(..., alias="service-id")
+    service_id: int = Form(..., alias="service-id"),
+    page: int = 1,
 ) -> JSONResponse:
     """
     Edits attributes of an existing service.
@@ -123,10 +157,12 @@ def edit_service(
     - new_description: The new description of the service.
     - new_unit_price: The new unit price of the service.
     - service_id: The unique ID of the service to edit.
+    - page: The current page of services being viewed in the table.
 
     Returns:
     - `JSONResponse`: A JSON object containing a status message, status code, 
-    and the edited service object if the operation is successful.
+    the edited service object if the operation is successful, and a redirect
+    path to the same page.
 
     Raises:
     - HTTPException:
@@ -168,6 +204,7 @@ def edit_service(
                 "description": updated_service.description,
                 "unit_price": str(updated_service.unit_price),
             },
+            "redirect_to": f"/services?page={page}",
         },
         status_code=200,
     )
@@ -175,7 +212,9 @@ def edit_service(
 @router.post("/remove_service")
 def remove_service(
     session: SessionDependency,
-    service_id: int = Form(..., alias="service-id")
+    service_id: int = Form(..., alias="service-id"),
+    page: int = 1,
+    per_page: int = 12
 ) -> JSONResponse:
     """
     Removes an existing service.
@@ -183,10 +222,13 @@ def remove_service(
     Parameters:
     - session: A SQLModel session dependency for database access.
     - service_id: The unique ID of the service to remove.
+    - page: The current page of services being viewed in the table.
+    - per_page: The maximum number of services to show per page in the table.
 
     Returns:
     - `JSONResponse`: A JSON object containing a status message, status code, 
-    and the removed service object's unique id if the operation is successful.
+    the removed service object's unique id if the operation is successful, and
+    the page to redirect to.
 
     Raises:
     - HTTPException:
@@ -198,12 +240,23 @@ def remove_service(
         session
     )
 
+    # Count total number of services after deletion
+    total_services = len(session.exec(select(Service)).all())
+    # Determine the new number of pages needed
+    total_pages = (total_services + per_page - 1) // per_page
+
+    # If removing the service caused the page to be empty, redirect to the
+    # previous page (or the first page, if total_pages is an unexpected value
+    if page > total_pages:
+        page = max(total_pages, 1)
+
     return JSONResponse(
         content={
             "detail": delete_status,
             "service": {
                 "id": service.id,
-            }
+            },
+            "redirect_to": f"/services?page={page}",
         },
         status_code=200,
     )

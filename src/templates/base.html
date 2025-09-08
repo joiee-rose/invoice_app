@@ -136,7 +136,7 @@
                     </li>
                     <!-- Services -->
                     <li class="nav-item">
-                        <a href="/services" class="flex flex-row gap-2 items-center text-base cursor-pointer">
+                        <a href="/services?page=1" class="flex flex-row gap-2 items-center text-base cursor-pointer">
                             <div class="icon-wrapper overflow-hidden flex-shrink-0">
                                 <span class="icon outline">{{ heroicon_outline("wrench-screwdriver", width="1.875rem", height="1.875rem") }}</span>
                                 <span class="icon solid">{{ heroicon_solid("wrench-screwdriver", width="1.875rem", height="1.875rem", color=iconHoverColor) }}</span>
@@ -168,7 +168,7 @@
             </nav>
         </aside>
         <!-- Content -->
-        <main class="w-full h-full p-4 bg-gray-50 shadow-gray-950 shadow-lg/20 rounded-lg">
+        <main class="w-full h-full p-4 relative bg-gray-50 shadow-gray-950 shadow-lg/20 rounded-lg">
             {% block content %}
             {% endblock %}
 
