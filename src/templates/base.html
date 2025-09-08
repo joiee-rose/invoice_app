@@ -109,10 +109,10 @@
         </style>
         {% block css %}{% endblock %}
     </head> 
-    <body class="w-screen h-screen flex flex-row gap-4 bg-gray-100">
+    <body class="w-screen h-screen flex flex-row gap-2 p-4 overflow-hidden bg-gray-100">
         <!-- Side Navigation Bar -->
-        <aside class="w-64 h-full bg-gray-100">
-            <nav class="w-full h-full m-4 p-4 bg-gray-50 shadow-gray-950 shadow-lg/20 rounded-lg">
+        <aside class="w-64">
+            <nav class="h-full p-4 bg-gray-50 shadow-gray-950 shadow-lg/20 rounded-lg">
                 <ul id="nav-items" class="h-full flex flex-col gap-4">
                     <!-- Dashboard -->
                     <li class="nav-item">
@@ -168,7 +168,7 @@
             </nav>
         </aside>
         <!-- Content -->
-        <main class="w-full h-full m-4 p-4 bg-gray-50 shadow-gray-950 shadow-lg/20 rounded-lg">
+        <main class="w-full h-full p-4 bg-gray-50 shadow-gray-950 shadow-lg/20 rounded-lg">
             {% block content %}
             {% endblock %}
 
@@ -188,6 +188,7 @@
                 <p class="text-base flex-grow break-words" id="p_toast-error"></p>
             </div>
         </main>
+    </body>
         <!-- JavaScript -->
         {% block javascript %}{% endblock %}
 </html>
