@@ -46,13 +46,11 @@ def render_services_page(
     - `HTMLResponse`: The rendered HTML content of the services page.
     """
     # Determine number of services to show per page based on screen height
-    per_page = utils.get_per_page()
+    per_page = utils.get_per_page("services")
 
-    # Count the number of services (use for pagination)
+    # Slice the list of all services based on the number of services per page
     all_services = session.exec(select(Service)).all()
     total = len(all_services)
-    # Slice the list of all services based on the number of services per page
-    # to show
     start = (page - 1) * per_page
     end = start + per_page
     page_services = all_services[start:end]
@@ -71,6 +69,7 @@ def render_services_page(
             "page_services": page_services,
             "page_services_dict": page_services_dict,
             "page": page,
+            "per_page": per_page,
             "total_pages": total_pages,
             "theme": session.get(AppSetting, "0000").setting_value,
             "colorTheme": session.get(AppSetting, "0001").setting_value
@@ -83,8 +82,7 @@ def add_service(
     name: str = Form(...),
     unit_price: str = Form(..., alias="unit-price"),
     description: str | None = Form(...),
-    page: int = 1,
-    per_page: int = 12
+    page: int = 1
 ) -> JSONResponse:
     """
     Creates a new service.
@@ -106,6 +104,9 @@ def add_service(
         - 422 (UNPROCESSABLE ENTITY) for form validation errors
         - 500 (INTERNAL SERVER ERROR) for unexpected errors
     """
+    # Determine number of services shown per page based on screen height
+    per_page = utils.get_per_page("services")
+
     # Validate the new service data
     validate_status, new_service = utils.call_service_or_422(
         ServiceCRUD.validate_data,
@@ -129,8 +130,7 @@ def add_service(
     total_pages = (total_services + per_page - 1) // per_page
 
     # If creating the new service caused a new page to be added, redirect to
-    # that new page (or the current page, if total_pages is an unexpected
-    # value)
+    # that new page or the current page if total_pages is an unexpected value
     if total_pages > page:
         page = max(total_pages, page)
 
@@ -222,8 +222,7 @@ def edit_service(
 def remove_service(
     session: SessionDependency,
     service_id: int = Form(..., alias="service-id"),
-    page: int = 1,
-    per_page: int = 12
+    current_page: int = Form(..., alias="current-page")
 ) -> JSONResponse:
     """
     Removes an existing service.
@@ -243,6 +242,10 @@ def remove_service(
     - HTTPException:
         - 500 (INTERNAL SERVER ERROR) for unexpected errors
     """
+    # Determine number of services shown per page based on screen height
+    per_page = utils.get_per_page("services")
+
+    # Delete the service from the database
     delete_status, service = utils.call_service_or_500(
         ServiceCRUD.delete,
         service_id,
@@ -255,9 +258,10 @@ def remove_service(
     total_pages = (total_services + per_page - 1) // per_page
 
     # If removing the service caused the page to be empty, redirect to the
-    # previous page (or the first page, if total_pages is an unexpected value
-    if page > total_pages:
-        page = max(total_pages, 1)
+    # previous page or the first page if total_pages is an unexpected value,
+    # otherwise, stay on the current page
+    if current_page > total_pages:
+        current_page = max(total_pages, 1)
 
     return JSONResponse(
         content={
@@ -265,7 +269,7 @@ def remove_service(
             "service": {
                 "id": service.id,
             },
-            "redirect_to": f"/services?page={page}",
+            "redirect_to": f"/services?page={current_page}",
         },
         status_code=200,
     )

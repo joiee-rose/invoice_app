@@ -289,9 +289,9 @@ document.addEventListener("DOMContentLoaded", function() {
 
     /**
      * Search the all services table for services matching an input search string.
-     * If the number of matches found exceeds 12, enable vertical scrolling for the table.
+     * If the number of matches found exceeds the number of rows shown per page, enable vertical scrolling for the table.
      * @param {string} searchInput - The input search string.
-     * @param {string} searchBy - The field to search by (options: "name", "description", "unit-price").
+     * @param {string} searchBy - The field to search by.
      * @returns {void}
      */
     function searchAllServicesTable(searchInput, searchBy) {
@@ -327,7 +327,7 @@ document.addEventListener("DOMContentLoaded", function() {
             }
         });
 
-        (matchesFound > 12) && tableDiv.classList.add("max-h-[48rem]", "overflow-y-auto");
+        (matchesFound > perPage) && tableDiv.classList.add("max-h-[48rem]", "overflow-y-auto");
         tablePaginationDiv.classList.add("hidden");
     }
 
@@ -343,7 +343,7 @@ document.addEventListener("DOMContentLoaded", function() {
         // Clear the current table
         allServicesTableBody.innerHTML = "";
         // Add the page's services back to the table
-        pageServices.forEach(service => {
+        pageServices.forEach((service) => {
             addServiceToAllServicesTable(service);
         });
 
@@ -444,9 +444,9 @@ document.addEventListener("DOMContentLoaded", function() {
      * 
      * 09/08/2025 - This function is no longer used because the page reloads after a service is removed.
      */
-    function removeServiceFromAllServicesTable(service) {
+    /*function removeServiceFromAllServicesTable(service) {
         document.getElementById(`tr_service-${service.id}`).remove();
-    }
+    }*/
 
     /**
      * Edit a service in the all services table.
@@ -455,12 +455,12 @@ document.addEventListener("DOMContentLoaded", function() {
      * 
      * 09/08/2025 - This function is no longer used because the page reloads after a service is removed.
      */
-    function editServiceInAllServicesTable(service) {
+    /*function editServiceInAllServicesTable(service) {
         const serviceRow = document.getElementById(`tr_service-${service.id}`);
 
         serviceRow.getElementsByTagName("td")[0].innerText = service.name;
         serviceRow.getElementsByTagName("td")[1].innerText = service.description;
         serviceRow.getElementsByTagName("td")[2].innerText = `$${Number(service.unit_price).toFixed(2)}`;
-    }
+    }*/
     //#endregion DEPRECATED FUNCTIONS
 });

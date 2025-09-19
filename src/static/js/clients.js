@@ -1,4 +1,17 @@
 document.addEventListener("DOMContentLoaded", async function() {
+    const toastType = localStorage.getItem("toastType");
+    const toastMessage = localStorage.getItem("toastMessage");
+
+    // Show stored toast message after a reload
+    if (toastType && toastMessage) {
+        setTimeout(() => {
+            showToast(toastType, toastMessage);
+            // Clear the message so it doesn't show again on next reload
+            localStorage.removeItem("toastType");
+            localStorage.removeItem("toastMessage");
+        }, 3);
+    }
+
     //#region CLIENT FORM
     const clientFormDialog = document.getElementById("dialog_client-form");
     const clientForm = document.getElementById("form_client-form");
@@ -31,7 +44,7 @@ document.addEventListener("DOMContentLoaded", async function() {
         // Submit the Client Form
         clientForm.addEventListener("submit", async(e) => {
             e.preventDefault();
-            const formData = new FormData(clientForm);
+            const formData = new FormData(e.target);
             try {
                 // Use the current form's action (set by the button that opens the form)
                 const response = await fetch(clientForm.action, {
@@ -43,16 +56,11 @@ document.addEventListener("DOMContentLoaded", async function() {
                     data = await response.json();
                     // Close the form dialog
                     closeFormDialog(clientFormDialog);
-                    if (clientForm.action.endsWith("add_client")) {
-                        // Add the new client to the all clients table
-                        addClientToAllClientsTable(data.client);
-                    }
-                    else if (clientForm.action.endsWith("edit_client")) {
-                        // Update the existing client in the all clients table
-                        editClientInAllClientsTable(data.client);
-                    }
-                    // Show success toast notification
-                    showToast("success", data.detail);
+                    // Store toast message before reload
+                    localStorage.setItem("toastType", "success");
+                    localStorage.setItem("toastMessage", data.detail);
+                    // Reload the page according to the redirect url provided in the JSON response body
+                    window.location.href = data.redirect_to;
                 } else {
                     data = await response.json();
                     if (response.status == 422) {
@@ -121,10 +129,11 @@ document.addEventListener("DOMContentLoaded", async function() {
                     data = await response.json();
                     // Close the form dialog
                     closeFormDialog(removeClientFormDialog);
-                    // Remove the client from the all clients table
-                    removeClientFromAllClientsTable(data.client);
-                    // Show success toast notification
-                    showToast("success", data.detail);
+                    // Store toast message before reload
+                    localStorage.setItem("toastType", "success");
+                    localStorage.setItem("toastMessage", data.detail);
+                    // Reload the page according to the redirect url provided in the JSON response body
+                    window.location.href = data.redirect_to;
                 } else {
                     data = await response.json();
                     if (response.status == 500) {
@@ -236,13 +245,13 @@ document.addEventListener("DOMContentLoaded", async function() {
 
     searchInput.addEventListener("input", function(e) {
         clearAllClientsTableSearch();
-        if (searchInput === "") return;
+        if (searchInput.value.trim() === "") return;
         searchAllClientsTable(e.currentTarget.value, searchBySelect.value);
     });
 
     searchBySelect.addEventListener("change", function(e) {
         clearAllClientsTableSearch();
-        if (searchInput === "") return;
+        if (searchInput.value.trim() === "") return;
         searchAllClientsTable(searchInput.value, e.currentTarget.value);
     });
     //#endregion SEARCH
@@ -406,161 +415,6 @@ document.addEventListener("DOMContentLoaded", async function() {
     }
 
     /**
-     * Add a client to the all clients table.
-     * @param {{ id: number, name: string, business_name: string, city: string, state: string, zip_code: string, email: string, phone: string}} client - The client as a JSON object containing the unique ID and data of the new client.
-     * @returns {void}
-     */
-    function addClientToAllClientsTable(client) {
-        const allClientsTableBody = document.getElementById("tbody_all-clients");
-        const iconHoverColor = clientForm.dataset.iconHoverColor;
-
-        // Icons
-        const newEditIconOutlined = `
-            <svg width="1.25rem", height="1.25rem" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L6.832 19.82a4.5 4.5 0 0 1-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 0 1 1.13-1.897L16.863 4.487Zm0 0L19.5 7.125" />
-            </svg>
-        `;
-        const newEditIconSolid = `
-            <svg width="1.25rem", height="1.25rem" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="${iconHoverColor}">
-                <path d="M21.731 2.269a2.625 2.625 0 0 0-3.712 0l-1.157 1.157 3.712 3.712 1.157-1.157a2.625 2.625 0 0 0 0-3.712ZM19.513 8.199l-3.712-3.712-12.15 12.15a5.25 5.25 0 0 0-1.32 2.214l-.8 2.685a.75.75 0 0 0 .933.933l2.685-.8a5.25 5.25 0 0 0 2.214-1.32L19.513 8.2Z" />
-            </svg>
-        `;
-        const newDeleteIconOutlined = `
-            <svg width="1.25rem", height="1.25rem" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
-            </svg>
-        `;
-        const newDeleteIconSolid = `
-            <svg width="1.25rem", height="1.25rem" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="${iconHoverColor}">
-                <path fill-rule="evenodd" d="M16.5 4.478v.227a48.816 48.816 0 0 1 3.878.512.75.75 0 1 1-.256 1.478l-.209-.035-1.005 13.07a3 3 0 0 1-2.991 2.77H8.084a3 3 0 0 1-2.991-2.77L4.087 6.66l-.209.035a.75.75 0 0 1-.256-1.478A48.567 48.567 0 0 1 7.5 4.705v-.227c0-1.564 1.213-2.9 2.816-2.951a52.662 52.662 0 0 1 3.369 0c1.603.051 2.815 1.387 2.815 2.951Zm-6.136-1.452a51.196 51.196 0 0 1 3.273 0C14.39 3.05 15 3.684 15 4.478v.113a49.488 49.488 0 0 0-6 0v-.113c0-.794.609-1.428 1.364-1.452Zm-.355 5.945a.75.75 0 1 0-1.5.058l.347 9a.75.75 0 1 0 1.499-.058l-.346-9Zm5.48.058a.75.75 0 1 0-1.498-.058l-.347 9a.75.75 0 0 0 1.5.058l.345-9Z" clip-rule="evenodd" />
-            </svg>
-        `;
-        const newClientQuoteProfileIconOutlined = `
-            <svg width="1.25rem", height="1.25rem" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="${iconHoverColor}">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m3.75 9v7.5m2.25-6.466a9.016 9.016 0 0 0-3.461-.203c-.536.072-.974.478-1.021 1.017a4.559 4.559 0 0 0-.018.402c0 .464.336.844.775.994l2.95 1.012c.44.15.775.53.775.994 0 .136-.006.27-.018.402-.047.539-.485.945-1.021 1.017a9.077 9.077 0 0 1-3.461-.203M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
-            </svg>
-        `;
-        const newClientQuoteProfileIconSolid = `
-            <svg width="1.25rem", height="1.25rem" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" fill="${iconHoverColor}">
-                <path fill-rule="evenodd" d="M3.75 3.375c0-1.036.84-1.875 1.875-1.875H9a3.75 3.75 0 0 1 3.75 3.75v1.875c0 1.036.84 1.875 1.875 1.875H16.5a3.75 3.75 0 0 1 3.75 3.75v7.875c0 1.035-.84 1.875-1.875 1.875H5.625a1.875 1.875 0 0 1-1.875-1.875V3.375Zm10.5 1.875a5.23 5.23 0 0 0-1.279-3.434 9.768 9.768 0 0 1 6.963 6.963A5.23 5.23 0 0 0 16.5 7.5h-1.875a.375.375 0 0 1-.375-.375V5.25ZM12 10.5a.75.75 0 0 1 .75.75v.028a9.727 9.727 0 0 1 1.687.28.75.75 0 1 1-.374 1.452 8.207 8.207 0 0 0-1.313-.226v1.68l.969.332c.67.23 1.281.85 1.281 1.704 0 .158-.007.314-.02.468-.083.931-.83 1.582-1.669 1.695a9.776 9.776 0 0 1-.561.059v.028a.75.75 0 0 1-1.5 0v-.029a9.724 9.724 0 0 1-1.687-.278.75.75 0 0 1 .374-1.453c.425.11.864.186 1.313.226v-1.68l-.968-.332C9.612 14.974 9 14.354 9 13.5c0-.158.007-.314.02-.468.083-.931.831-1.582 1.67-1.694.185-.025.372-.045.56-.06v-.028a.75.75 0 0 1 .75-.75Zm-1.11 2.324c.119-.016.239-.03.36-.04v1.166l-.482-.165c-.208-.072-.268-.211-.268-.285 0-.113.005-.225.015-.336.013-.146.14-.309.374-.34Zm1.86 4.392V16.05l.482.165c.208.072.268.211.268.285 0 .113-.005.225-.015.336-.012.146-.14.309-.374.34-.12.016-.24.03-.361.04Z" clip-rule="evenodd" />
-            </svg>
-        `;
-
-        // Create a new <tr> element
-        const newRow = document.createElement("tr");
-        // Set the id attribute of the new element
-        newRow.id = `tr_client-${client.id}`;
-        // Set the inner HTML of the new element
-        newRow.innerHTML = `
-            <td class="p-4">${client.name}</td>
-            <td class="p-4">${client.business_name}</td>
-            <td class="p-4">${client.street_address}, ${client.city}, ${client.state} ${client.zip_code}</td>
-            <td class="p-4">${client.email}</td>
-            <td class="p-4">${client.phone}</td>
-            <td class="flex flex-row gap-4 p-4">
-                <!-- Edit Client Buttons -->
-                <button
-                    id="btn_show-edit-client-form-${client.id}"
-                    data-name="${client.name}"
-                    data-business-name="${client.business_name}"
-                    data-street-address="${client.street_address}"
-                    data-city="${client.city}"
-                    data-state="${client.state}"
-                    data-zip-code="${client.zip_code}"
-                    data-email="${client.email}"
-                    data-phone="${client.phone}"
-                    data-client-id="${client.id}"
-                    class="flex cursor-pointer"
-                >
-                    <div class="icon-wrapper overflow-hidden flex-shrink-0">
-                        <span class="icon outline">${newEditIconOutlined}</span>
-                        <span class="icon solid">${newEditIconSolid}</span>
-                    </div>
-                </button>
-                <!-- Remove Client Buttons -->
-                <button
-                    id="btn_show-remove-client-form-${client.id}"
-                    data-name="${client.name}"
-                    data-business-name="${client.business_name}"
-                    data-client-id="${client.id}"
-                    class="cursor-pointer group"
-                >
-                    <div class="icon-wrapper overflow-hidden flex-shrink-0">
-                        <span class="icon outline">${newDeleteIconOutlined}</span>
-                        <span class="icon solid">${newDeleteIconSolid}</span>
-                    </div>
-                </button>
-                <!-- Client Quote Profile Buttons -->
-                <button
-                    id="btn_show-client-quote-profile-form-${client.id}"
-                    data-name="${client.name}"
-                    data-business-name="${client.business_name}"
-                    data-street-address="${client.street_address}"
-                    data-city="${client.city}"
-                    data-state="${client.state}"
-                    data-zip-code="${client.zip_code}"
-                    data-client-id="${client.id}"
-                    class="cursor-pointer group"
-                >
-                    <div class="icon-wrapper overflow-hidden flex-shrink-0">
-                        <span class="icon outline">${newClientQuoteProfileIconOutlined}</span>
-                        <span class="icon solid">${newClientQuoteProfileIconSolid}</span>
-                    </div>
-                </button>
-            </td>
-        `;
-        // Append the new element to the table body
-        allClientsTableBody.appendChild(newRow);
-
-        // Add event listeners to the new row's icon buttons
-        document.getElementById(`btn_show-edit-client-form-${client.id}`).addEventListener("click", (e) => {
-            // Open the "Edit Client" form
-            openEditClientForm(e.currentTarget);
-        });
-        document.getElementById(`btn_show-remove-client-form-${client.id}`).addEventListener("click", (e) => {
-            // Open the "Remove Client" form
-            openRemoveClientForm(e.currentTarget);
-        });
-        document.getElementById(`btn_show-client-quote-profile-form-${client.id}`).addEventListener("click", (e) => {
-            // Open the "Client Quote Profile" form
-            openClientQuoteProfileForm(e.currentTarget);
-        });
-    }
-
-    /**
-     * Edit a client in the all clients table.
-     * @param {{ id: number, name: string, business_name: string, city: string, state: string, zip_code: string, email: string, phone: string}} client - The client as a JSON object containing the unique ID and data of the updated client.
-     * @returns {void}
-     */
-    function editClientInAllClientsTable(client) {
-        const clientRow = document.getElementById(`tr_client-${client.id}`);
-
-        clientRow.getElementsByTagName("td")[0].innerText = client.name;
-        clientRow.getElementsByTagName("td")[1].innerText = client.business_name;
-        clientRow.getElementsByTagName("td")[2].innerText = `${client.street_address}, ${client.city}, ${client.state} ${client.zip_code}`;
-        clientRow.getElementsByTagName("td")[3].innerText = client.email;
-        clientRow.getElementsByTagName("td")[4].innerText = client.phone;
-    }
-
-    /**
-     * Remove a client from the all clients table.
-     * @param {{ id: number }} client - The client as a JSON object containing the unique ID of the removed client.
-     * @returns {void}
-     */
-    function removeClientFromAllClientsTable(client) {
-        document.getElementById(`tr_client-${client.id}`).remove();
-
-        // Check the cached quote profiles for a profile with clien tid matching the removed client
-        const index = cachedQuoteProfiles.findIndex(
-            quoteProfile => Number(client.id) === Number(quoteProfile.client_id)
-        );
-        // If found, remove it from the list
-        if (index !== -1) {
-            cachedQuoteProfiles.splice(index, 1);
-        }
-    }
-
-    /**
      * Add a service row to the Client Quote Profile services table.
      * @returns {void}
      */
@@ -698,40 +552,242 @@ document.addEventListener("DOMContentLoaded", async function() {
         eventElement.parentElement.parentElement.remove();
     }
 
+    /**
+     * Search the all clients table for clients matching an input search string.
+     * If the number of matches found exceeds the number of rows shown per page, enable vertical scrolling for the table.
+     * @param {string} searchInput - The input search string.
+     * @param {string} searchBy - The field to search by.
+     * @returns {void}
+     */
     function searchAllClientsTable(searchInput, searchBy) {
+        const tableDiv = document.getElementById("div_table");
+        const tablePaginationDiv = document.getElementById("div_table-pagination");
         const allClientsTableBody = document.getElementById("tbody_all-clients");
         searchInput = searchInput.toLowerCase().trim();
 
-        allClientsTableBody.querySelectorAll("tr").forEach((row) => {
+        // Clear the current table
+        allClientsTableBody.innerHTML = "";
+        // Iterate through the list of all services and add matches to the table
+        let matchesFound = 0;
+        allClients.forEach((client) => {
             switch (searchBy) {
                 case "name":
-                    const name = row.getElementsByTagName("td")[0].innerText.toLowerCase().trim();
-                    (!name.includes(searchInput)) && (row.style.display = "none");
+                    if (client.name.toLowerCase().includes(searchInput)) {
+                        addClientToAllClientsTable(client);
+                        ++matchesFound;
+                    };
                     break;
                 case "business-name":
-                    const businessName = row.getElementsByTagName("td")[1].innerText.toLowerCase().trim();
-                    (!businessName.includes(searchInput)) && (row.style.display = "none");
+                    if (client.business_name.toLowerCase().includes(searchInput)) {
+                        addClientToAllClientsTable(client);
+                        ++matchesFound;
+                    };
                     break;
                 case "billing-address":
-                    const address = row.getElementsByTagName("td")[2].innerText.toLowerCase().trim();
-                    (!address.includes(searchInput)) && (row.style.display = "none");
+                    const billing_address = `${client.street_address} ${client.city} ${client.state} ${client.zip_code}`;
+                    if (billing_address.toLowerCase().includes(searchInput)) {
+                        addClientToAllClientsTable(client);
+                        ++matchesFound;
+                    };
                     break;
                 case "email":
-                    const email = row.getElementsByTagName("td")[3].innerText.toLowerCase().trim();
-                    (!email.includes(searchInput)) && (row.style.display = "none");
+                    if (client.email.toLowerCase().includes(searchInput)) {
+                        addClientToAllClientsTable(client);
+                        ++matchesFound;
+                    };
                     break;
                  case "phone":
-                    const phone = row.getElementsByTagName("td")[4].innerText.toLowerCase().trim();
-                    (!phone.includes(searchInput)) && (row.style.display = "none");
+                    if (client.phone.toLowerCase().includes(searchInput)) {
+                        addClientToAllClientsTable(client);
+                        ++matchesFound;
+                    };
                     break;
             }
         });
+
+        (matchesFound > perPage) && tableDiv.classList.add("max-h-[48rem]", "overflow-y-auto");
+        tablePaginationDiv.classList.add("hidden");
     }
 
+    /**
+     * Clear any search filters applied to the all clients table and restore the current page's clients.
+     * @returns {void}
+     */
     function clearAllClientsTableSearch() {
-        document.getElementById("tbody_all-clients").querySelectorAll("tr").forEach((row) => {
-            row.style.display = "";
+        const tableDiv = document.getElementById("div_table");
+        const tablePaginationDiv = document.getElementById("div_table-pagination");
+        const allClientsTableBody = document.getElementById("tbody_all-clients");
+
+        // Clear the current table
+        allClientsTableBody.innerHTML = "";
+        // Add the page's clients back to the table
+        pageClients.forEach((client) => {
+            addClientToAllClientsTable(client);
+        })
+
+        tableDiv.classList.remove("max-h-[48rem]", "overflow-y-auto");
+        tablePaginationDiv.classList.remove("hidden");
+    }
+
+    /**
+     * Add a client to the all clients table.
+     * @param {{ id: number, name: string, business_name: string, city: string, state: string, zip_code: string, email: string, phone: string}} client - The client as a JSON object containing the unique ID and data of the new client.
+     * @returns {void}
+     */
+    function addClientToAllClientsTable(client) {
+        const allClientsTableBody = document.getElementById("tbody_all-clients");
+        const iconHoverColor = clientForm.dataset.iconHoverColor;
+
+        // Icons
+        const newEditIconOutlined = `
+            <svg width="1.25rem", height="1.25rem" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L6.832 19.82a4.5 4.5 0 0 1-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 0 1 1.13-1.897L16.863 4.487Zm0 0L19.5 7.125" />
+            </svg>
+        `;
+        const newEditIconSolid = `
+            <svg width="1.25rem", height="1.25rem" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="${iconHoverColor}">
+                <path d="M21.731 2.269a2.625 2.625 0 0 0-3.712 0l-1.157 1.157 3.712 3.712 1.157-1.157a2.625 2.625 0 0 0 0-3.712ZM19.513 8.199l-3.712-3.712-12.15 12.15a5.25 5.25 0 0 0-1.32 2.214l-.8 2.685a.75.75 0 0 0 .933.933l2.685-.8a5.25 5.25 0 0 0 2.214-1.32L19.513 8.2Z" />
+            </svg>
+        `;
+        const newDeleteIconOutlined = `
+            <svg width="1.25rem", height="1.25rem" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
+            </svg>
+        `;
+        const newDeleteIconSolid = `
+            <svg width="1.25rem", height="1.25rem" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="${iconHoverColor}">
+                <path fill-rule="evenodd" d="M16.5 4.478v.227a48.816 48.816 0 0 1 3.878.512.75.75 0 1 1-.256 1.478l-.209-.035-1.005 13.07a3 3 0 0 1-2.991 2.77H8.084a3 3 0 0 1-2.991-2.77L4.087 6.66l-.209.035a.75.75 0 0 1-.256-1.478A48.567 48.567 0 0 1 7.5 4.705v-.227c0-1.564 1.213-2.9 2.816-2.951a52.662 52.662 0 0 1 3.369 0c1.603.051 2.815 1.387 2.815 2.951Zm-6.136-1.452a51.196 51.196 0 0 1 3.273 0C14.39 3.05 15 3.684 15 4.478v.113a49.488 49.488 0 0 0-6 0v-.113c0-.794.609-1.428 1.364-1.452Zm-.355 5.945a.75.75 0 1 0-1.5.058l.347 9a.75.75 0 1 0 1.499-.058l-.346-9Zm5.48.058a.75.75 0 1 0-1.498-.058l-.347 9a.75.75 0 0 0 1.5.058l.345-9Z" clip-rule="evenodd" />
+            </svg>
+        `;
+        const newClientQuoteProfileIconOutlined = `
+            <svg width="1.25rem", height="1.25rem" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="${iconHoverColor}">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m3.75 9v7.5m2.25-6.466a9.016 9.016 0 0 0-3.461-.203c-.536.072-.974.478-1.021 1.017a4.559 4.559 0 0 0-.018.402c0 .464.336.844.775.994l2.95 1.012c.44.15.775.53.775.994 0 .136-.006.27-.018.402-.047.539-.485.945-1.021 1.017a9.077 9.077 0 0 1-3.461-.203M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
+            </svg>
+        `;
+        const newClientQuoteProfileIconSolid = `
+            <svg width="1.25rem", height="1.25rem" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" fill="${iconHoverColor}">
+                <path fill-rule="evenodd" d="M3.75 3.375c0-1.036.84-1.875 1.875-1.875H9a3.75 3.75 0 0 1 3.75 3.75v1.875c0 1.036.84 1.875 1.875 1.875H16.5a3.75 3.75 0 0 1 3.75 3.75v7.875c0 1.035-.84 1.875-1.875 1.875H5.625a1.875 1.875 0 0 1-1.875-1.875V3.375Zm10.5 1.875a5.23 5.23 0 0 0-1.279-3.434 9.768 9.768 0 0 1 6.963 6.963A5.23 5.23 0 0 0 16.5 7.5h-1.875a.375.375 0 0 1-.375-.375V5.25ZM12 10.5a.75.75 0 0 1 .75.75v.028a9.727 9.727 0 0 1 1.687.28.75.75 0 1 1-.374 1.452 8.207 8.207 0 0 0-1.313-.226v1.68l.969.332c.67.23 1.281.85 1.281 1.704 0 .158-.007.314-.02.468-.083.931-.83 1.582-1.669 1.695a9.776 9.776 0 0 1-.561.059v.028a.75.75 0 0 1-1.5 0v-.029a9.724 9.724 0 0 1-1.687-.278.75.75 0 0 1 .374-1.453c.425.11.864.186 1.313.226v-1.68l-.968-.332C9.612 14.974 9 14.354 9 13.5c0-.158.007-.314.02-.468.083-.931.831-1.582 1.67-1.694.185-.025.372-.045.56-.06v-.028a.75.75 0 0 1 .75-.75Zm-1.11 2.324c.119-.016.239-.03.36-.04v1.166l-.482-.165c-.208-.072-.268-.211-.268-.285 0-.113.005-.225.015-.336.013-.146.14-.309.374-.34Zm1.86 4.392V16.05l.482.165c.208.072.268.211.268.285 0 .113-.005.225-.015.336-.012.146-.14.309-.374.34-.12.016-.24.03-.361.04Z" clip-rule="evenodd" />
+            </svg>
+        `;
+
+        // Create a new <tr> element
+        const newRow = document.createElement("tr");
+        // Set the id attribute of the new element
+        newRow.id = `tr_client-${client.id}`;
+        // Set the inner HTML of the new element
+        newRow.innerHTML = `
+            <td class="p-4">${client.name}</td>
+            <td class="p-4">${client.business_name}</td>
+            <td class="p-4">${client.street_address}<br/>${client.city}, ${client.state} ${client.zip_code}</td>
+            <td class="p-4">${client.email}</td>
+            <td class="p-4">${client.phone}</td>
+            <td class="flex flex-row gap-4 p-4">
+                <!-- Edit Client Buttons -->
+                <button
+                    id="btn_show-edit-client-form-${client.id}"
+                    data-name="${client.name}"
+                    data-business-name="${client.business_name}"
+                    data-street-address="${client.street_address}"
+                    data-city="${client.city}"
+                    data-state="${client.state}"
+                    data-zip-code="${client.zip_code}"
+                    data-email="${client.email}"
+                    data-phone="${client.phone}"
+                    data-client-id="${client.id}"
+                    class="flex cursor-pointer"
+                >
+                    <div class="icon-wrapper overflow-hidden flex-shrink-0">
+                        <span class="icon outline">${newEditIconOutlined}</span>
+                        <span class="icon solid">${newEditIconSolid}</span>
+                    </div>
+                </button>
+                <!-- Remove Client Buttons -->
+                <button
+                    id="btn_show-remove-client-form-${client.id}"
+                    data-name="${client.name}"
+                    data-business-name="${client.business_name}"
+                    data-client-id="${client.id}"
+                    class="cursor-pointer group"
+                >
+                    <div class="icon-wrapper overflow-hidden flex-shrink-0">
+                        <span class="icon outline">${newDeleteIconOutlined}</span>
+                        <span class="icon solid">${newDeleteIconSolid}</span>
+                    </div>
+                </button>
+                <!-- Client Quote Profile Buttons -->
+                <button
+                    id="btn_show-client-quote-profile-form-${client.id}"
+                    data-name="${client.name}"
+                    data-business-name="${client.business_name}"
+                    data-street-address="${client.street_address}"
+                    data-city="${client.city}"
+                    data-state="${client.state}"
+                    data-zip-code="${client.zip_code}"
+                    data-client-id="${client.id}"
+                    class="cursor-pointer group"
+                >
+                    <div class="icon-wrapper overflow-hidden flex-shrink-0">
+                        <span class="icon outline">${newClientQuoteProfileIconOutlined}</span>
+                        <span class="icon solid">${newClientQuoteProfileIconSolid}</span>
+                    </div>
+                </button>
+            </td>
+        `;
+        // Append the new element to the table body
+        allClientsTableBody.appendChild(newRow);
+
+        // Add event listeners to the new row's icon buttons
+        document.getElementById(`btn_show-edit-client-form-${client.id}`).addEventListener("click", (e) => {
+            // Open the "Edit Client" form
+            openEditClientForm(e.currentTarget);
+        });
+        document.getElementById(`btn_show-remove-client-form-${client.id}`).addEventListener("click", (e) => {
+            // Open the "Remove Client" form
+            openRemoveClientForm(e.currentTarget);
+        });
+        document.getElementById(`btn_show-client-quote-profile-form-${client.id}`).addEventListener("click", (e) => {
+            // Open the "Client Quote Profile" form
+            openClientQuoteProfileForm(e.currentTarget);
         });
     }
     //#endregion FUNCTIONS
+
+    //#region DEPRECATED FUNCTIONS
+    /**
+     * Remove a client from the all clients table.
+     * @param {{ id: number }} client - The client as a JSON object containing the unique ID of the removed client.
+     * @returns {void}
+     * 
+     * 09/19/2025 - This function is no longer used because the page reloads after a client is removed.
+     */
+    /*function removeClientFromAllClientsTable(client) {
+        document.getElementById(`tr_client-${client.id}`).remove();
+
+        // Check the cached quote profiles for a profile with client id matching the removed client
+        const index = cachedQuoteProfiles.findIndex(
+            quoteProfile => Number(client.id) === Number(quoteProfile.client_id)
+        );
+        // If found, remove it from the list
+        if (index !== -1) {
+            cachedQuoteProfiles.splice(index, 1);
+        }
+    }*/
+
+    /**
+     * Edit a client in the all clients table.
+     * @param {{ id: number, name: string, business_name: string, city: string, state: string, zip_code: string, email: string, phone: string}} client - The client as a JSON object containing the unique ID and data of the updated client.
+     * @returns {void}
+     * 
+     * 09/19/2025 - This function is no longer used because the page reloads after a client is removed.
+     */
+    /*function editClientInAllClientsTable(client) {
+        const clientRow = document.getElementById(`tr_client-${client.id}`);
+
+        clientRow.getElementsByTagName("td")[0].innerText = client.name;
+        clientRow.getElementsByTagName("td")[1].innerText = client.business_name;
+        clientRow.getElementsByTagName("td")[2].innerText = `${client.street_address}, ${client.city}, ${client.state} ${client.zip_code}`;
+        clientRow.getElementsByTagName("td")[3].innerText = client.email;
+        clientRow.getElementsByTagName("td")[4].innerText = client.phone;
+    }*/
+    //#endregion DEPRECATED FUNCTIONS
 }); 

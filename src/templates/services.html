@@ -211,6 +211,8 @@
         <form id="form_remove-service-form" action="/services/remove_service" method="post">
             <!-- hidden input storing Service ID -->
             <input type="text" id="input_remove-service-form_service-id" name="service-id" hidden>
+            <!-- hidden input storing the current page -->
+            <input type="text" id="input_current-page" name="current-page" value="{{ page }}" hidden>
             <div class="flex flex-row gap-4 justify-end">
                 <!-- Form Submit Button -->
                 <button type="submit" class="h-[2.25rem] pl-4 pr-4 bg-red-500 rounded-md text-base font-semibold cursor-pointer">Delete Service</button>
@@ -223,6 +225,9 @@
 
 {% block javascript %}
     <script src="/static/js/services.js"></script>
-    <script>const allServices = {{ all_services_dict | tojson }};</script>
-    <script>const pageServices = {{ page_services_dict | tojson }};</script>
+    <script>
+        const allServices = {{ all_services_dict | tojson }};
+        const pageServices = {{ page_services_dict | tojson }};
+        const perPage = {{ per_page }};
+    </script>
 {% endblock %}

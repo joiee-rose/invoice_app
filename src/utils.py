@@ -38,19 +38,34 @@ def call_service_or_404(service_func, *args, **kwargs):
         )
     return message, data
 
-def get_per_page():
+def get_per_page(page_type: str) -> int:
     user32 = ctypes.windll.user32
     height = user32.GetSystemMetrics(1)
 
     if height > 1200:
-        per_page = 14
+        if (page_type == "clients"):
+            per_page = 10
+        elif (page_type == "services"):
+            per_page = 14
     elif 1000 <= height <= 1200:
-        per_page = 12
+        if (page_type == "clients"):
+            per_page = 8
+        elif (page_type == "services"):
+            per_page = 12
     elif 800 <= height < 1000:
-        per_page = 8
+        if (page_type == "clients"):
+            per_page = 4
+        elif (page_type == "services"):
+            per_page = 8
     elif 600 <= height < 800:
-        per_page = 6
+        if (page_type == "clients"):
+            per_page = 2
+        elif (page_type == "services"):
+            per_page = 6
     else:  # height < 600
-        per_page = 4
+        if (page_type == "clients"):
+            per_page = 1
+        elif (page_type == "services"):
+            per_page = 4
 
     return per_page

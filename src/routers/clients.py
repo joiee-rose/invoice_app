@@ -2,9 +2,12 @@ import textwrap
 from typing import Annotated
 from decimal import Decimal
 
-from fastapi import APIRouter, Depends, Form, HTTPException, Request, status
+from fastapi import (
+    APIRouter, Depends, Form, HTTPException, Request, status, Query
+)
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
+from fastapi.encoders import jsonable_encoder
 from heroicons.jinja import heroicon_outline, heroicon_solid
 from sqlmodel import Session, select
 
@@ -37,7 +40,8 @@ SessionDependency = Annotated[Session, Depends(get_session)]
 @router.get("/", response_class=HTMLResponse)
 def render_clients_page(
     request: Request,
-    session: SessionDependency
+    session: SessionDependency,
+    page: int = 1
 ) -> HTMLResponse:
     """
     Renders the clients page.
@@ -49,6 +53,22 @@ def render_clients_page(
     Returns:
     - `HTMLResponse`: The rendered HTML content of the clients page.
     """
+    # Determine number of clients to show per page based on screen height
+    per_page = utils.get_per_page("clients")
+
+    # Slice the list of all clients based on the number of clients per page
+    all_clients = session.exec(select(Client)).all()
+    total = len(all_clients)
+    start = (page - 1) * per_page
+    end = start + per_page
+    page_clients = all_clients[start:end]
+    # Count the number of pages necessary to show all the clients
+    total_pages = (total + per_page - 1) // per_page
+
+    # Convert clients lists to JSON-serializable format for use in javascript
+    all_clients_dict = jsonable_encoder(all_clients)
+    page_clients_dict = jsonable_encoder(page_clients)
+
     services = session.exec(select(Service)).all()
     services_data = [
         {
@@ -58,12 +78,18 @@ def render_clients_page(
         }
         for service in services
     ]
+
     return templates.TemplateResponse(
         request=request, 
         name="clients.html", 
         context={
-            "clients": session.exec(select(Client)).all(),
+            "all_clients_dict": all_clients_dict,
+            "page_clients": page_clients,
+            "page_clients_dict": page_clients_dict,
             "services": services_data,
+            "page": page,
+            "per_page": per_page,
+            "total_pages": total_pages,
             "theme": session.get(AppSetting, "0000").setting_value,
             "colorTheme": session.get(AppSetting, "0001").setting_value
         }
@@ -79,7 +105,8 @@ def add_client(
     state: str = Form(...),
     zip_code: str = Form(..., alias="zip-code"),
     email: str = Form(...),
-    phone: str = Form(...)
+    phone: str = Form(...),
+    page: int = 1
 ) -> JSONResponse:
     """
     Creates a new client.
@@ -104,6 +131,9 @@ def add_client(
         - 422 (UNPROCESSABLE ENTITY) for form validation errors
         - 500 (INTERNAL SERVER ERROR) for unexpected errors
     """
+    # Determine number of clients shown per page based on screen height
+    per_page = utils.get_per_page("clients")
+
     # Validate the new client data
     validate_status, new_client = utils.call_service_or_422(
         ClientCRUD.validate_data,
@@ -126,6 +156,16 @@ def add_client(
         session
     )
 
+    # Count total number of clients after creation
+    total_clients = len(session.exec(select(Client)).all())
+    # Determine the new number of pages needed
+    total_pages = (total_clients + per_page - 1) // per_page
+
+    # If creating the new client caused a new page to be added, redirect to
+    # that new page or the current page if total_pages is an unexpected value
+    if total_pages > page:
+        page = max(total_pages, page)
+
     return JSONResponse(
         content={
             "detail": create_status,
@@ -140,6 +180,7 @@ def add_client(
                 "email": client.email,
                 "phone": client.phone,
             },
+            "redirect_to": f"/clients?page={page}",
         },
         status_code=200,
     )
@@ -233,7 +274,8 @@ def edit_client(
 @router.post("/remove_client")
 def remove_client(
     session: SessionDependency,
-    client_id: int = Form(..., alias="client-id")
+    client_id: int = Form(..., alias="client-id"),
+    current_page: int = Form(..., alias="current-page")
 ) -> JSONResponse:
     """
     Removes an existing client. If the client has a client quote profile, it
@@ -251,6 +293,9 @@ def remove_client(
     - HTTPException:
         - 500 (INTERNAL SERVER ERROR) for unexpected errors
     """
+    # Determine number of clients shown per page based on screen height
+    per_page = utils.get_per_page("clients")
+
     # Check if the client has a client quote profile
     existing_client_quote_profile = session.get(ClientQuoteProfile, client_id)
     # If the client has a client quote profile, delete it from the database
@@ -268,12 +313,24 @@ def remove_client(
         session
     )
 
+    # Count total number of clients after deletion
+    total_clients = len(session.exec(select(Client)).all())
+    # Determine the new number of pages needed
+    total_pages = (total_clients + per_page - 1) // per_page
+
+    # If removing the client caused the page to be empty, redirect to the
+    # previous page or the first page if total_pages is an unexpected value,
+    # otherwise, stay on the current page
+    if current_page > total_pages:
+        current_page = max(total_pages, 1)
+
     return JSONResponse(
         content={
             "detail": delete_status,
             "client": {
                 "id": client.id,
             },
+            "redirect_to": f"/clients?page={current_page}",
         },
         status_code=200,
     )

@@ -88,8 +88,8 @@
                 </select>
             </div>
         </div>
-        <!-- table of current clients -->
-        <div class="relative w-full h-full overflow-auto flex flex-col bg-white shadow-md rounded-lg bg-clip-border">
+        <!-- Table of All Clients -->
+        <div id="div_table" class="relative w-full h-full overflow-auto flex flex-col bg-white shadow-md rounded-lg bg-clip-border">
             <table class="w-full table-auto text-left">
                 <thead>
                     <tr class="h-[2.25rem] bg-{{ colorTheme }} border-b">
@@ -102,11 +102,11 @@
                     </tr>
                 </thead>
                 <tbody id="tbody_all-clients">
-                    {% for client in clients %}
+                    {% for client in page_clients %}
                     <tr id="tr_client-{{ client.id }}" class="h-[2.25rem]">
                         <td class="p-4">{{ client.name }}</td>
                         <td class="p-4">{{ client.business_name }}</td>
-                        <td class="p-4">{{ client.get_billing_address() }}</td>
+                        <td class="p-4">{{ client.street_address }}<br/>{{ client.city}}, {{ client.state }} {{ client.zip_code }}</td>
                         <td class="p-4">{{ client.email }}</td>
                         <td class="p-4">{{ client.phone }}</td>
                         <td class="p-4 align-middle">
@@ -167,6 +167,18 @@
                 </tbody>
             </table>
         </div>
+    </div>
+    <!-- Table Pagination -->
+    <div id="div_table-pagination" class="flex justify-center gap-2 absolute bottom-8 left-1/2 -translate-x-1/2">
+        {% if page > 1 %}
+            <a href="/clients?page={{ page - 1 }}" class="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300">Previous</a>
+        {% endif %}
+        {% for p in range(1, total_pages + 1) %}
+            <a href="/clients?page={{ p }}" class="px-3 py-1 rounded px-3 py-1 rounded {% if p == page %}bg-{{ colorTheme }} text-white{% else %}bg-gray-200 hover:bg-gray-300{% endif %}">{{ p }}</a>
+        {% endfor %}
+        {% if page < total_pages %}
+            <a href="/clients?page={{ page + 1 }}" class="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300">Next</a>
+        {% endif %}
     </div>
 
     <!-- Client Form Dialog -->
@@ -256,6 +268,8 @@
         <form id="form_remove-client-form" action="/clients/remove_client" method="post">
             <!-- hidden input storing Client ID -->
             <input type="text" id="input_remove-client-form_client-id" name="client-id" hidden>
+            <!-- hidden input storing the current page -->
+            <input type="text" id="input_current-page" name="current-page" value="{{ page }}" hidden>
             <div class="flex flex-row gap-4 justify-end">
                 <!-- Form Submit Button -->
                 <button type="submit" class="h-[2.25rem] pl-4 pr-4 bg-red-500 rounded-md text-base font-semibold cursor-pointer">Delete Client</button>
@@ -334,4 +348,9 @@
 {% block javascript %}
     <script src="/static/js/clients.js"></script>
     <script id="services-data" type="application/json">{{ services | tojson }}</script>
+    <script>
+        const allClients = {{ all_clients_dict | tojson }};
+        const pageClients = {{ page_clients_dict | tojson }};
+        const perPage = {{ per_page }};
+    </script>
 {% endblock %}
