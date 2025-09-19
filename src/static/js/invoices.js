@@ -1,20 +1,40 @@
-document.addEventListener('DOMContentLoaded', function() {
-    // #region SELECT CLIENTS
-    const dialogSelectClientsForm = document.getElementById("dialog-select-clients-form");
-    const formSelectClientsForm = document.getElementById("form-select-clients-form");
+document.addEventListener("DOMContentLoaded", async function() {
+    const toastType = localStorage.getItem("toastType");
+    const toastMessage = localStorage.getItem("toastMessage");
 
-    // Open form 
-    const btnShowSelectClientsForm = document.getElementById("btn-show-select-clients-form");
-    btnShowSelectClientsForm.addEventListener("click", function() {
-        dialogSelectClientsForm.removeAttribute("hidden");
-        dialogSelectClientsForm.showModal();
-    });
+    // Show stored toast message after a reload
+    if (toastType && toastMessage) {
+        setTimeout(() => {
+            showToast(toastType, toastMessage);
+            // Clear the message so it doesn't show again on next reload
+            localStorage.removeItem("toastType");
+            localStorage.removeItem("toastMessage");
+        }, 3);
+    }
 
-    // Close form
-    const btnHideSelectClientsForm = document.getElementById("btn-hide-select-clients-form");
-    btnHideSelectClientsForm.addEventListener("click", function() {
-        dialogSelectClientsForm.setAttribute("hidden", "true");
-        dialogSelectClientsForm.close();
-    });
-    // #endregion SELECT CLIENTS
+    //#region FUNCTIONS
+    /**
+     * Show a toast notification.
+     * @param {string} toastType - The type of toast notification to show (options: "success", "error").
+     * @param {string} message - The message to display in the toast notification.
+     * @returns {void}
+     */
+    function showToast(toastType, message) {
+        const toast = document.getElementById(`toast-${toastType}`);
+        const toastText = document.getElementById(`p_toast-${toastType}`);
+    
+        // Set the toast notification message text
+        toastText.textContent = message;
+
+        // Show the toast (slide in)
+        toast.classList.remove("show", "hide");
+        toast.classList.add("show");
+    
+        // Wait 3s (plus transition time), then hide the toast (slide out)
+        setTimeout(() => {
+            toast.classList.remove("show");
+            toast.classList.add("hide");
+        }, 3800);
+    }
+    //#endregion FUNCTIONS
 });

@@ -2,9 +2,7 @@ import textwrap
 from typing import Annotated
 from decimal import Decimal
 
-from fastapi import (
-    APIRouter, Depends, Form, HTTPException, Request, status, Query
-)
+from fastapi import APIRouter, Depends, Form, HTTPException, Request, status
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.encoders import jsonable_encoder

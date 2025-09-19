@@ -1,0 +1,277 @@
+{% extends "base.html" %}
+
+{% block title %}
+    Quotes
+{% endblock %}
+
+{% if colorTheme == "emerald-400" %}
+    {% set tableRowHoverColor = "oklch(90.5% 0.093 164.15)" %} <!-- emerald 200 -->
+    {% set tableIconHoverColor = "oklch(59.6% 0.145 163.225)" %} <!-- emerald 600 -->
+    {% set closeFormIconHoverColor = "oklch(76.5% 0.177 163.223)" %} <!-- emerald 400 -->
+{% elif colorTheme == "blue-400" %}
+    {% set tableRowHoverColor = "oklch(88.2% 0.059 254.128)" %} <!-- blue 200 -->
+    {% set tableIconHoverColor = "oklch(54.6% 0.245 262.881)" %} <!-- blue 600 -->
+    {% set closeFormIconHoverColor = "oklch(70.7% 0.165 254.624)" %} <!-- blue 400 -->
+{% elif colorTheme == "violet-400" %}
+    {% set tableRowHoverColor = "oklch(89.4% 0.057 293.283)" %} <!-- violet 200 -->
+    {% set tableIconHoverColor = "oklch(54.1% 0.281 293.009)" %} <!-- violet 600 -->
+    {% set closeFormIconHoverColor = "oklch(70.2% 0.183 293.541)" %} <!-- violet 400 -->
+{% elif colorTheme == "fuchsia-400" %}
+    {% set tableRowHoverColor = "oklch(90.3% 0.076 319.62)" %} <!-- fuchsia 200 -->
+    {% set tableIconHoverColor = "oklch(59.1% 0.293 322.896)" %} <!-- fuchsia 600 -->
+    {% set closeFormIconHoverColor = "oklch(74% 0.238 322.16)" %} <!-- fuchsia 400 -->
+{% elif colorTheme == "rose-400" %}
+    {% set tableRowHoverColor = "oklch(89.2% 0.058 10.001)" %} <!-- rose 200 -->
+    {% set tableIconHoverColor = "oklch(58.6% 0.253 17.585)" %} <!-- rose 600 -->
+    {% set closeFormIconHoverColor = "oklch(71.2% 0.194 13.428)" %} <!-- rose 400 -->
+{% endif %}
+
+{% block css %}
+    <style>
+        #tbody_all-quotes tr:hover {
+            background-color: {{ tableRowHoverColor }};
+        }
+        #tbody_all-clients tr:hover {
+            background-color: {{ tableRowHoverColor }};
+        }
+
+        .icon-wrapper {
+            position: relative;
+            display: inline-block;
+            width: 1.25rem;
+            height: 1.25rem;
+        }
+
+        .form-icon-wrapper {
+            position: relative;
+            display: inline-block;
+            width: 1.875rem;
+            height: 1.875rem;
+        }
+
+        .icon, .form-icon-wrapper .icon {
+            position: absolute;
+            top: 0;
+            left: 0;
+            transition: opacity 0.2s ease;
+        }
+
+        .icon.solid, .form-icon-wrapper .icon.solid {
+            opacity: 0; /* hide solid by default */
+            transition: opacity 0.3s;
+        }
+
+        .icon-wrapper:hover .icon.solid, .form-icon-wrapper:hover .icon.solid { opacity: 1; }
+        .icon-wrapper:hover .icon.outline, .form-icon-wrapper:hover .icon.outline { opacity: 0; }
+    </style>
+{% endblock %}
+
+{% block content %}
+    <!-- Quote History -->
+    <div class="flex flex-col">
+        <!-- Header and Batch Quotes Button -->
+        <div class="mb-4 flex flex-row justify-between">
+            <h1 class="text-3xl font-bold">Quote History</h1>
+            <button id="btn_show-batch-quotes-form" class="h-[2.25rem] pl-4 pr-4 bg-{{ colorTheme }} rounded-md text-base font-semibold cursor-pointer">Batch Quotes</button>
+        </div>
+        <!-- Search -->
+        <div class="w-full mb-4 relative">
+            <div class="absolute top-1/2 -translate-y-1/2 left-2">
+                {{ heroicon_outline("magnifying-glass", width="1.25rem", height="1.25rem", color=tableIconHoverColor) }}
+            </div>
+            <input type="text" id="input_search" name="search" class="h-[2.25rem] w-full p-2 pl-8 border-2 rounded-md text-base" placeholder="Search...">
+            <div class="absolute top-0 right-2 h-[2.25rem] flex items-center">
+                <span class="h-[1.5rem] w-0 border border-blue-400 rounded-md"></span>
+                <select id="select_search-by" class="h-[2.25rem] p-2 rounded-md cursor-pointer text-base font-medium leading-[2.25rem] focus:border-transparent focus:outline-none">
+                    <option value="client-name">by Client Name</option>
+                    <option value="client-business-name">by Client Business Name</option>
+                    <option value="quote-number">by Quote No.</option>
+                    <option value="issue-date">by Issue Date</option>
+                </select>
+            </div>
+        </div>
+        <!-- Table of All Quotes -->
+        <div class="relative w-full h-full overflow-auto flex flex-col bg-white shadow-md rounded-lg bg-clip-border">
+            <table class="w-full table-auto text-left">
+                <thead>
+                    <tr class="h-[2.25rem] bg-{{ colorTheme }} border-b">
+                        <th class="w-[30%] p-4">Client Name</th>
+                        <th class="w-[30%] p-4">Client Business Name</th>
+                        <th class="w-[15%] p-4">Quote No.</th>
+                        <th class="w-[15%] p-4">Issue Date</th>
+                        <th class="w-[10%] p-4"></th>
+                    </tr>
+                </thead>
+                <tbody id="tbody_all-quotes">
+                    {% for quote in page_quotes %}
+                        {% for client in clients %}
+                            {% if quote.client_id == client.id %}
+                                <tr class="h-[2.25rem] hover:bg-{{ tableHoverColor }}">
+                                    <td class="p-4">{{ client.name }}</td>
+                                    <td class="p-4">{{ client.business_name }}</td>
+                                    <td class="p-4">{{ quote.quote_no }}</td>
+                                    <td class="p-4">{{ quote.issue_date }}</td>
+                                    <td class="flex p-4">
+                                        <!-- Download Icons -->
+                                        <a href="/download_quote?client_id={{ client.id }}&quote_id={{ quote.id }}" class="flex cursor-pointer">
+                                            <div class="icon-wrapper overflow-hidden flex-shrink-0">
+                                                <span class="icon outline">{{ heroicon_outline("arrow-down-on-square", width="1.25rem", height="1.25rem") }}</span>
+                                                <span class="icon solid">{{ heroicon_solid("arrow-down-on-square", width="1.25rem", height="1.25rem", color=tableIconHoverColor) }}</span>
+                                            </div>
+                                        </a>
+                                    </td>
+                                </tr>
+                            {% endif %}
+                        {% endfor %}
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <!-- Table Pagination -->
+    <div id="div_table-pagination" class="flex justify-center gap-2 absolute bottom-8 left-1/2 -translate-x-1/2">
+        {% if page > 1 %}
+            <a href="/quotes?page={{ page - 1 }}" class="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300">Previous</a>
+        {% endif %}
+        {% for p in range(1, total_pages + 1) %}
+            <a href="/quotes?page={{ p }}" class="px-3 py-1 rounded px-3 py-1 rounded {% if p == page %}bg-{{ colorTheme }} text-white{% else %}bg-gray-200 hover:bg-gray-300{% endif %}">{{ p }}</a>
+        {% endfor %}
+        {% if page < total_pages %}
+            <a href="/quotes?page={{ page + 1 }}" class="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300">Next</a>
+        {% endif %}
+    </div>
+
+    <!-- Batch Quotes Form Dialog -->
+    <dialog id="dialog_batch-quotes-form" class="w-auto h-auto m-auto overflow-hidden p-4 flex flex-col bg-gray-50 rounded-lg" hidden>
+        <!-- Form Header -->
+        <div class="mb-4 flex flex-row justify-between">
+            <h2 class="text-2xl font-bold">Batch Send Quotes</h2>
+            <button id="btn_hide-batch-quotes-form" class="cursor-pointer group">
+                <div class="form-icon-wrapper overflow-hidden flex-shrink-0">
+                    <span class="icon outline">{{ heroicon_outline("x-circle", width="1.875rem", height="1.875rem") }}</span>
+                    <span class="icon solid">{{ heroicon_solid("x-circle", width="1.875rem", height="1.875rem", color=closeFormIconHoverColor) }}</span>
+                </div>
+            </button>
+        </div>
+        <div class="flex flex-row gap-8">
+            <div class="w-128 flex flex-col">
+                <!-- Search -->
+                <div class="w-full mb-4 relative">
+                    <div class="absolute top-1/2 -translate-y-1/2 left-2">
+                        {{ heroicon_outline("magnifying-glass", width="1.25rem", height="1.25rem", color=tableIconHoverColor) }}
+                    </div>
+                    <input type="text" id="input_search" name="search" class="h-[2.25rem] w-full p-2 pl-8 border-2 rounded-md text-base" placeholder="Search...">
+                    <div class="absolute top-0 right-2 h-[2.25rem] flex items-center">
+                        <span class="h-[1.5rem] w-0 border border-blue-400 rounded-md"></span>
+                        <select id="select_search-by" class="h-[2.25rem] p-2 rounded-md cursor-pointer text-base font-medium leading-[2.25rem] focus:border-transparent focus:outline-none">
+                            <option value="name">by Name</option>
+                            <option value="business-name">by Business Name</option>
+                        </select>
+                    </div>
+                </div>
+                <!-- Table of All Clients -->
+                <div id="div_table" class="relative w-full min-h-[calc(100vh-12rem)] max-h-[calc(100vh-12rem)] overflow-y-scroll pr-1 flex flex-col bg-white shadow-md rounded-lg bg-clip-border">
+                    <table class="w-full table-auto text-left">
+                        <thead>
+                            <tr class="h-[2.25rem] bg-{{ colorTheme }} border-b">
+                                <th class="w-[6%] p-4"></th>
+                                <th class="w-[37%] p-4">Client Name</th>
+                                <th class="w-[57%] p-4">Client Business Name</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbody_all-clients">
+                            {%for client in clients %}
+                            <tr
+                                id="tr_client-{{ client.id }}"
+                                data-client-id="{{ client.id }}"
+                                data-name="{{ client.name }}"
+                                data-business-name="{{ client.business_name }}"
+                                data-street-address="{{ client.street_address }}"
+                                data-city="{{ client.city }}"
+                                data-state="{{ client.state }}"
+                                data-zip-code="{{ client.zip_code }}"
+                                class="h-[2.25rem] cursor-pointer"
+                            >
+                                <td class="p-4 align-middle">
+                                    <button
+                                        data-client-id="{{ client.id}}"
+                                        class="cursor-pointer"
+                                    >
+                                        <div class="icon-wrapper overflow-hidden flex-shrink-0">
+                                            <span class="icon outline">{{ heroicon_outline("plus-circle", width="1.25rem", height="1.25rem") }}</span>
+                                            <span class="icon solid">{{ heroicon_solid("plus-circle", width="1.25rem", height="1.25rem", color=tableIconHoverColor) }}</span>
+                                        </div>
+                                    </button>
+                                </td>
+                                <td class="p-4">{{ client.name }}</td>
+                                <td class="p-4">{{ client.business_name }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="w-full flex flex-col">
+                <h2 class="mb-4 text-2xl font-bold">Client Quote Profile</h2>
+                <!-- Client Information -->
+                <div class="mb-4 flex flex-col">
+                    <p id="p_batch-quotes-form_name-placeholder"></p>
+                    <p id="p_batch-quotes-form_business-name-placeholder"></p>
+                    <p id="p_batch-quotes-form_billing-address-1-placeholder"></p>
+                    <p id="p_batch-quotes-form_billing-address-2-placeholder"></p>
+                </div>
+                <!-- Form -->
+                <form id="form_batch-quotes-form" method="post" action="/quotes/batch_send_quotes" data-table-icon-hover-color="{{ tableIconHoverColor }}" class="h-full flex flex-col justify-between">
+                    {% for client in clients %}
+                        <div id="div_client-quote-profile_client-{{ client.id }}" class="hidden">
+                            <div class="w-full mb-4 flex flex-col gap-2">
+                                <div class="w-1/4 flex flex-col">
+                                    <!-- Minimum Monthly Charge -->
+                                    <label for="input_batch-quotes-form_client-quote-profile_min-monthly-charge_client-{{ client.id }}" class="pr-2 text-base font-bold">Minimum Monthly Charge (USD):</label>
+                                    <input type="text" id="input_batch-quotes-form_client-quote-profile_min-monthly-charge_client-{{ client.id }}" name="min-monthly-charge" class="h-[2rem] p-2 border rounded-md text-base" required>
+                                </div>
+                                <div class="w-1/4 flex flex-col">
+                                    <!-- Premium Salt Upcharge -->
+                                    <label for="input_batch-quotes-form_client-quote-profile_premium-salt-upcharge_client-{{ client.id }}" class="pr-2 text-base font-bold">Premium Salt Upcharge (USD):</label>
+                                    <input type="text" id="input_batch-quotes-form_client-quote-profile_premium-salt-upcharge_client-{{ client.id }}" name="premium-salt-upcharge" class="h-[2rem] p-2 border rounded-md text-base" required>
+                                </div>
+                            </div>
+                            <!-- Table of Services for the Client -->
+                            <div class="relative w-full h-auto overflow-auto flex flex-col bg-white shadow-md rounded-lg bg-clip-border">
+                                <table class="w-full table-auto text-left">
+                                    <thead>
+                                        <tr class="h-[2rem] bg-{{ colorTheme }} border-b">
+                                            <th class="w-[32%] p-2">Service</th>
+                                            <th class="w-[8%] p-2 text-center">Quantity</th>
+                                            <th class="w-[12%] p-2">Per Unit</th>
+                                            <th class="w-[15%] p-2">Unit Price (USD)</th>
+                                            <th class="w-[8%] p-2">Tax (%)</th>
+                                            <th class="w-[15%] p-2">Total Price (USD)</th>
+                                            <th class="w-[5%] p-2"></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="tbody_batch-quotes-form_client-quote-profile-services_client-{{ client.id }}">
+                                        <!-- rows added dynamically with JavaScript -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    {% endfor %}
+                    <div class="mt-4 flex gap-4 justify-end">
+                        <button id="btn_send-quotes" type="submit" class="h-[2.25rem] pl-4 pr-4 bg-{{ colorTheme }} rounded-md text-base font-semibold cursor-pointer">Send Quotes</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </dialog>
+{% endblock %}
+
+{% block javascript %}
+    <script src="/static/js/quotes.js"></script>
+    <script>
+        const allQuotes = {{ all_quotes_dict | tojson }};
+        const pageQuotes = {{ page_quotes_dict | tojson }};
+        const allServices = {{ all_services_dict | tojson }};
+        const perPage = {{ per_page }};
+    </script>
+{% endblock %}

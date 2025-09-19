@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+
+{% block title %}
+    Invoices
+{% endblock %}
+
+{% if colorTheme == "emerald-400" %}
+    {% set tableRowHoverColor = "oklch(90.5% 0.093 164.15)" %} <!-- emerald 200 -->
+    {% set tableIconHoverColor = "oklch(59.6% 0.145 163.225)" %} <!-- emerald 600 -->
+    {% set closeFormIconHoverColor = "oklch(76.5% 0.177 163.223)" %} <!-- emerald 400 -->
+{% elif colorTheme == "blue-400" %}
+    {% set tableRowHoverColor = "oklch(88.2% 0.059 254.128)" %} <!-- blue 200 -->
+    {% set tableIconHoverColor = "oklch(54.6% 0.245 262.881)" %} <!-- blue 600 -->
+    {% set closeFormIconHoverColor = "oklch(70.7% 0.165 254.624)" %} <!-- blue 400 -->
+{% elif colorTheme == "violet-400" %}
+    {% set tableRowHoverColor = "oklch(89.4% 0.057 293.283)" %} <!-- violet 200 -->
+    {% set tableIconHoverColor = "oklch(54.1% 0.281 293.009)" %} <!-- violet 600 -->
+    {% set closeFormIconHoverColor = "oklch(70.2% 0.183 293.541)" %} <!-- violet 400 -->
+{% elif colorTheme == "fuchsia-400" %}
+    {% set tableRowHoverColor = "oklch(90.3% 0.076 319.62)" %} <!-- fuchsia 200 -->
+    {% set tableIconHoverColor = "oklch(59.1% 0.293 322.896)" %} <!-- fuchsia 600 -->
+    {% set closeFormIconHoverColor = "oklch(74% 0.238 322.16)" %} <!-- fuchsia 400 -->
+{% elif colorTheme == "rose-400" %}
+    {% set tableRowHoverColor = "oklch(89.2% 0.058 10.001)" %} <!-- rose 200 -->
+    {% set tableIconHoverColor = "oklch(58.6% 0.253 17.585)" %} <!-- rose 600 -->
+    {% set closeFormIconHoverColor = "oklch(71.2% 0.194 13.428)" %} <!-- rose 400 -->
+{% endif %}
+
+{% block css %}
+    <style>
+        #tbody_all-invoices tr:hover {
+            background-color: {{ tableRowHoverColor }};
+        }
+
+        .icon-wrapper {
+            position: relative;
+            display: inline-block;
+            width: 1.25rem;
+            height: 1.25rem;
+        }
+
+        .form-icon-wrapper {
+            position: relative;
+            display: inline-block;
+            width: 1.875rem;
+            height: 1.875rem;
+        }
+
+        .icon, .form-icon-wrapper .icon {
+            position: absolute;
+            top: 0;
+            left: 0;
+            transition: opacity 0.2s ease;
+        }
+
+        .icon.solid, .form-icon-wrapper .icon.solid {
+            opacity: 0; /* hide solid by default */
+            transition: opacity 0.3s;
+        }
+
+        .icon-wrapper:hover .icon.solid, .form-icon-wrapper:hover .icon.solid { opacity: 1; }
+        .icon-wrapper:hover .icon.outline, .form-icon-wrapper:hover .icon.outline { opacity: 0; }
+    </style>
+{% endblock %}
+
+{% block content %}
+    <!-- Invoice History -->
+    <div class="flex flex-col">
+        <!-- Header and Batch Invoices Button -->
+        <div class="mb-4 flex flex-row justify-between">
+            <h1 class="text-3xl font-bold">Invoice History</h1>
+            <button id="btn_show-batch-invoices-form" class="h-[2.25rem] pl-4 pr-4 bg-{{ colorTheme }} rounded-md text-base font-semibold cursor-pointer">Batch Invoices</button>
+        </div>
+        <!-- Search -->
+        <div class="w-full mb-4 relative">
+            <div class="absolute top-1/2 -translate-y-1/2 left-2">
+                {{ heroicon_outline("magnifying-glass", width="1.25rem", height="1.25rem", color=tableIconHoverColor) }}
+            </div>
+            <input type="text" id="input_search" name="search" class="h-[2.25rem] w-full p-2 pl-8 border-2 rounded-md text-base" placeholder="Search...">
+            <div class="absolute top-0 right-2 h-[2.25rem] flex items-center">
+                <span class="h-[1.5rem] w-0 border border-blue-400 rounded-md"></span>
+                <select id="select_search-by" class="h-[2.25rem] p-2 rounded-md cursor-pointer text-base font-medium leading-[2.25rem] focus:border-transparent focus:outline-none">
+                    <option value="client-name">by Client Name</option>
+                    <option value="client-business-name">by Client Business Name</option>
+                    <option value="invoice-number">by Invoice No.</option>
+                    <option value="issue-date">by Issue Date</option>
+                </select>
+            </div>
+        </div>
+        <!-- Table of All Invoices -->
+        <div class="relative w-full h-full overflow-auto flex flex-col bg-white shadow-md rounded-lg bg-clip-border">
+            <table class="w-full table-auto text-left">
+                <thead>
+                    <tr class="h-[2.25rem] bg-{{ colorTheme }} border-b">
+                        <th class="w-[30%] p-4">Client Name</th>
+                        <th class="w-[30%] p-4">Client Business Name</th>
+                        <th class="w-[15%] p-4">Invoice No.</th>
+                        <th class="w-[15%] p-4">Issue Date</th>
+                        <th class="w-[10%] p-4"></th>
+                    </tr>
+                </thead>
+                <tbody id="tbody_all-invoices">
+                    {% for invoice in page_invoices %}
+                        {% for client in clients %}
+                            {% if invoice.client_id == client.id %}
+                                <tr class="h-[2.25rem] hover:bg-{{ tableHoverColor }}">
+                                    <td class="p-4">{{ client.name }}</td>
+                                    <td class="p-4">{{ client.business_name }}</td>
+                                    <td class="p-4">{{ invoice.invoice_no }}</td>
+                                    <td class="p-4">{{ invoice.issue_date }}</td>
+                                    <td class="flex p-4">
+                                        <!-- Download Icons -->
+                                        <a href="/download_invoice?client_id={{ client.id }}&invoice_id={{ invoice.id }}" class="flex cursor-pointer">
+                                            <div class="icon-wrapper overflow-hidden flex-shrink-0">
+                                                <span class="icon outline">{{ heroicon_outline("arrow-down-on-square", width="1.25rem", height="1.25rem") }}</span>
+                                                <span class="icon solid">{{ heroicon_solid("arrow-down-on-square", width="1.25rem", height="1.25rem", color=tableIconHoverColor) }}</span>
+                                            </div>
+                                        </a>
+                                    </td>
+                                </tr>
+                            {% endif %}
+                        {% endfor %}
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+{% endblock %}
+
+{% block javascript %}
+    <script src="/static/js/invoices.js"></script>
+    <script>
+        const allInvoices = {{ all_invoices_dict | tojson }};
+        const pageInvoices = {{ page_invoices_dict | tojson }};
+        const perPage = {{ per_page }};
+    </script>
+{% endblock %}

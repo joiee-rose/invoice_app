@@ -144,14 +144,24 @@
                             <p>Services</p>
                         </a>
                     </li>
-                    <!-- Quotes & Invoices -->
+                    <!-- Quotes -->
                     <li class="nav-item">
-                        <a href="/quotes_and_invoices" class="flex flex-row gap-2 items-center text-base cursor-pointer">
+                        <a href="/quotes?page=1" class="flex flex-row gap-2 items-center text-base cursor-pointer">
                             <div class="icon-wrapper overflow-hidden flex-shrink-0">
                                 <span class="icon outline">{{ heroicon_outline("document-currency-dollar", width="1.875rem", height="1.875rem") }}</span>
                                 <span class="icon solid">{{ heroicon_solid("document-currency-dollar", width="1.875rem", height="1.875rem", color=iconHoverColor) }}</span>
                             </div>
-                            <p>Quotes & Invoices</p>
+                            <p>Quotes</p>
+                        </a>
+                    </li>
+                    <!-- Invoices -->
+                    <li class="nav-item">
+                        <a href="/invoices?page=1" class="flex flex-row gap-2 items-center text-base cursor-pointer">
+                            <div class="icon-wrapper overflow-hidden flex-shrink-0">
+                                <span class="icon outline">{{ heroicon_outline("envelope", width="1.875rem", height="1.875rem") }}</span>
+                                <span class="icon solid">{{ heroicon_solid("envelope", width="1.875rem", height="1.875rem", color=iconHoverColor) }}</span>
+                            </div>
+                            <p>Invoices</p>
                         </a>
                     </li>
                     <!-- Settings -->

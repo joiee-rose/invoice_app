@@ -7,13 +7,17 @@ from fastapi import FastAPI, Depends, Request
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from heroicons.jinja import heroicon_micro, heroicon_mini, heroicon_outline, heroicon_solid
+from heroicons.jinja import (
+    heroicon_micro, heroicon_mini, heroicon_outline, heroicon_solid
+)
 from fastapi_tailwind import tailwind
 from sqlmodel import SQLModel, Session
 
-from routers import clients, quotes_and_invoices, services, settings
+from routers import clients, services, quotes, invoices, settings
 from database import sqlite_engine, get_session
-from models import Client, Service, ClientQuoteProfile, Quote, Invoice, AppSetting
+from models import (
+    Client, Service, ClientQuoteProfile, Quote, Invoice, AppSetting
+)
 from services import AppSettingCRUD
 
 @asynccontextmanager
@@ -101,7 +105,8 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 # Attach routers
 app.include_router(clients.router)
 app.include_router(services.router)
-app.include_router(quotes_and_invoices.router)
+app.include_router(quotes.router)
+app.include_router(invoices.router)
 app.include_router(settings.router)
 
 # Create Jinja2 templates object for rendering HTML from the templates directory
