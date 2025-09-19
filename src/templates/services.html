@@ -87,7 +87,7 @@
             </div>
         </div>
         <!-- Table of All Services -->
-        <div class="relative w-full h-full overflow-auto flex flex-col bg-white shadow-md rounded-lg bg-clip-border">
+        <div id="div_table" class="relative w-full h-full overflow-auto flex flex-col bg-white shadow-md rounded-lg bg-clip-border">
             <table class="w-full table-auto text-left">
                 <thead>
                     <tr class="h-[2.25rem] bg-{{ colorTheme }} border-b">
@@ -98,7 +98,7 @@
                     </tr>
                 </thead>
                 <tbody id="tbody_all-services">
-                    {% for service in services %}
+                    {% for service in page_services %}
                     <tr id="tr_service-{{ service.id }}" class="h-[2.25rem]">
                         <td class="p-4">{{ service.name }}</td>
                         <td class="p-4">{{ service.description }}</td>
@@ -141,7 +141,7 @@
         </div>
     </div>
     <!-- Table Pagination -->
-    <div class="flex justify-center gap-2 absolute bottom-8 left-1/2 -translate-x-1/2">
+    <div id="div_table-pagination" class="flex justify-center gap-2 absolute bottom-8 left-1/2 -translate-x-1/2">
         {% if page > 1 %}
             <a href="/services?page={{ page - 1 }}" class="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300">Previous</a>
         {% endif %}
@@ -223,4 +223,6 @@
 
 {% block javascript %}
     <script src="/static/js/services.js"></script>
+    <script>const allServices = {{ all_services_dict | tojson }};</script>
+    <script>const pageServices = {{ page_services_dict | tojson }};</script>
 {% endblock %}

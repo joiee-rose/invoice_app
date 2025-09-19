@@ -3,6 +3,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
+from fastapi.encoders import jsonable_encoder
 from heroicons.jinja import heroicon_outline, heroicon_solid
 from sqlmodel import Session, select
 
@@ -30,8 +31,7 @@ SessionDependency = Annotated[Session, Depends(get_session)]
 def render_services_page(
     request: Request,
     session: SessionDependency,
-    page: int = 1,
-    per_page: int = 12
+    page: int = 1
 ) -> HTMLResponse:
     """
     Renders the services page.
@@ -45,6 +45,9 @@ def render_services_page(
     Returns:
     - `HTMLResponse`: The rendered HTML content of the services page.
     """
+    # Determine number of services to show per page based on screen height
+    per_page = utils.get_per_page()
+
     # Count the number of services (use for pagination)
     all_services = session.exec(select(Service)).all()
     total = len(all_services)
@@ -52,15 +55,21 @@ def render_services_page(
     # to show
     start = (page - 1) * per_page
     end = start + per_page
-    services = all_services[start:end]
+    page_services = all_services[start:end]
     # Count the number of pages necessary to show all the services
     total_pages = (total + per_page - 1) // per_page
+
+    # Convert services lists to JSON-serializable format for use in javascript
+    all_services_dict = jsonable_encoder(all_services)
+    page_services_dict = jsonable_encoder(page_services)
 
     return templates.TemplateResponse(
         request=request,
         name="services.html",
         context={
-            "services": services,
+            "all_services_dict": all_services_dict,
+            "page_services": page_services,
+            "page_services_dict": page_services_dict,
             "page": page,
             "total_pages": total_pages,
             "theme": session.get(AppSetting, "0000").setting_value,

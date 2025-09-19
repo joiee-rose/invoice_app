@@ -154,13 +154,13 @@ document.addEventListener("DOMContentLoaded", function() {
 
     searchInput.addEventListener("input", function(e) {
         clearAllServicesTableSearch();
-        if (searchInput === "") return;
+        if (searchInput.value.trim() === "") return;
         searchAllServicesTable(e.currentTarget.value, searchBySelect.value);
     });
 
     searchBySelect.addEventListener("change", function(e) {
         clearAllServicesTableSearch();
-        if (searchInput === "") return;
+        if (searchInput.value.trim() === "") return;
         searchAllServicesTable(searchInput.value, e.currentTarget.value);
     });
     //#endregion SEARCH
@@ -288,58 +288,73 @@ document.addEventListener("DOMContentLoaded", function() {
     }
 
     /**
-     * Search the all services table.
-     * @param {string} searchInput 
-     * @param {string} searchBy 
+     * Search the all services table for services matching an input search string.
+     * If the number of matches found exceeds 12, enable vertical scrolling for the table.
+     * @param {string} searchInput - The input search string.
+     * @param {string} searchBy - The field to search by (options: "name", "description", "unit-price").
      * @returns {void}
      */
     function searchAllServicesTable(searchInput, searchBy) {
+        const tableDiv = document.getElementById("div_table");
+        const tablePaginationDiv = document.getElementById("div_table-pagination");
         const allServicesTableBody = document.getElementById("tbody_all-services");
         searchInput = searchInput.toLowerCase().trim();
 
-        allServicesTableBody.querySelectorAll("tr").forEach((row) => {
+        // Clear the current table
+        allServicesTableBody.innerHTML = "";
+        // Iterate through the list of all services and add matches to the table
+        let matchesFound = 0;
+        allServices.forEach((service) => {
             switch (searchBy) {
                 case "name":
-                    const name = row.getElementsByTagName("td")[0].innerText.toLowerCase().trim();
-                    (!name.includes(searchInput)) && (row.style.display = "none");
+                    if (service.name.toLowerCase().includes(searchInput)) {
+                        addServiceToAllServicesTable(service);
+                        ++matchesFound;
+                    };
                     break;
                 case "description":
-                    const description = row.getElementsByTagName("td")[1].innerText.toLowerCase().trim();
-                    (!description.includes(searchInput)) && (row.style.display = "none");
+                    if (service.description.toLowerCase().includes(searchInput)) {
+                        addServiceToAllServicesTable(service);
+                        ++matchesFound;
+                    };
                     break;
                 case "unit-price":
-                    const unitPrice = row.getElementsByTagName("td")[2].innerText.toLowerCase().trim();
-                    (!unitPrice.includes(searchInput)) && (row.style.display = "none");
+                    if (service.unit_price.toLowerCase().includes(searchInput)) {
+                        addServiceToAllServicesTable(service);
+                        ++matchesFound;
+                    };
                     break;
             }
         });
+
+        (matchesFound > 12) && tableDiv.classList.add("max-h-[48rem]", "overflow-y-auto");
+        tablePaginationDiv.classList.add("hidden");
     }
 
-    function clearAllServicesTableSearch() {
-        document.getElementById("tbody_all-services").querySelectorAll("tr").forEach((row) => {
-            row.style.display = "";
-        });
-    }
-    //#endregion FUNCTIONS
-
-    //#region DEPRECATED FUNCTIONS
     /**
-     * Remove a service from the all services table.
-     * @param {{ id: number }} service - The service as a JSON object containing the unique ID of the removed service.
+     * Clear any search filters applied to the all services table and restore the current page's services.
      * @returns {void}
-     * 
-     * 09/08/2025 - This function is no longer used because the page reloads after a service is removed.
      */
-    function removeServiceFromAllServicesTable(service) {
-        document.getElementById(`tr_service-${service.id}`).remove();
+    function clearAllServicesTableSearch() {
+        const tableDiv = document.getElementById("div_table");
+        const tablePaginationDiv = document.getElementById("div_table-pagination");
+        const allServicesTableBody = document.getElementById("tbody_all-services");
+
+        // Clear the current table
+        allServicesTableBody.innerHTML = "";
+        // Add the page's services back to the table
+        pageServices.forEach(service => {
+            addServiceToAllServicesTable(service);
+        });
+
+        tableDiv.classList.remove("max-h-[48rem]", "overflow-y-auto");
+        tablePaginationDiv.classList.remove("hidden");
     }
 
     /**
      * Add a service to the all services table.
      * @param {{ id: number, name: string, description: string, unit_price: string}} service - The service as a JSON object containing the unique ID, name, description, and unit price of the new service.
      * @returns {void}
-     * 
-     * 09/08/2025 - This function is no longer used because the page reloads after a service is removed.
      */
     function addServiceToAllServicesTable(service) {
         const allServicesTableBody = document.getElementById("tbody_all-services");
@@ -418,6 +433,19 @@ document.addEventListener("DOMContentLoaded", function() {
             // Open the "Remove Service" form
             openRemoveServiceForm(e.currentTarget);
         });
+    }
+    //#endregion FUNCTIONS
+
+    //#region DEPRECATED FUNCTIONS
+    /**
+     * Remove a service from the all services table.
+     * @param {{ id: number }} service - The service as a JSON object containing the unique ID of the removed service.
+     * @returns {void}
+     * 
+     * 09/08/2025 - This function is no longer used because the page reloads after a service is removed.
+     */
+    function removeServiceFromAllServicesTable(service) {
+        document.getElementById(`tr_service-${service.id}`).remove();
     }
 
     /**
