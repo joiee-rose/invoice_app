@@ -39,8 +39,7 @@ def render_services_page(
     Parameters:
     - request: The incoming HTTP request object.
     - session: A SQLModel session dependency for database access.
-    - page: The current page of services being viewed in the table.
-    - per_page: The maximum number of services to show per page in the table.
+    - page: The page number to display for table pagination (default is 1).
 
     Returns:
     - `HTMLResponse`: The rendered HTML content of the services page.
@@ -61,6 +60,10 @@ def render_services_page(
     all_services_dict = jsonable_encoder(all_services)
     page_services_dict = jsonable_encoder(page_services)
 
+    # Get color theme and page colors
+    color_theme = session.get(AppSetting, "0001").setting_value
+    colors = utils.get_colors(color_theme)
+
     return templates.TemplateResponse(
         request=request,
         name="services.html",
@@ -72,7 +75,8 @@ def render_services_page(
             "per_page": per_page,
             "total_pages": total_pages,
             "theme": session.get(AppSetting, "0000").setting_value,
-            "colorTheme": session.get(AppSetting, "0001").setting_value
+            "colorTheme": color_theme,
+            **colors
         }
     )
 
@@ -92,8 +96,7 @@ def add_service(
     - name: The name of the service.
     - unit_price: The unit price of the service.
     - description: The description of the service, if applicable.
-    - page: The current page of services being viewed in the table.
-    - per_page: The maximum number of services to show per page in the table.
+    - page: The page number to display for table pagination (default is 1).
 
     Returns:
     - `JSONResponse`: A JSON object containing a status message, status code, 
@@ -155,7 +158,7 @@ def edit_service(
     new_description: str | None = Form(..., alias="description"),
     new_unit_price: str = Form(..., alias="unit-price"),
     service_id: int = Form(..., alias="service-id"),
-    page: int = 1,
+    current_page: int = Form(..., alias="current-page")
 ) -> JSONResponse:
     """
     Edits attributes of an existing service.
@@ -166,7 +169,7 @@ def edit_service(
     - new_description: The new description of the service.
     - new_unit_price: The new unit price of the service.
     - service_id: The unique ID of the service to edit.
-    - page: The current page of services being viewed in the table.
+    - current_page: The current page of services being viewed in the table.
 
     Returns:
     - `JSONResponse`: A JSON object containing a status message, status code, 
@@ -213,7 +216,7 @@ def edit_service(
                 "description": updated_service.description,
                 "unit_price": str(updated_service.unit_price),
             },
-            "redirect_to": f"/services?page={page}",
+            "redirect_to": f"/services?page={current_page}",
         },
         status_code=200,
     )
@@ -230,8 +233,7 @@ def remove_service(
     Parameters:
     - session: A SQLModel session dependency for database access.
     - service_id: The unique ID of the service to remove.
-    - page: The current page of services being viewed in the table.
-    - per_page: The maximum number of services to show per page in the table.
+    - current_page: The current page of services being viewed in the table.
 
     Returns:
     - `JSONResponse`: A JSON object containing a status message, status code, 

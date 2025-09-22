@@ -4,33 +4,9 @@
     Clients
 {% endblock %}
 
-{% if colorTheme == "emerald-400" %}
-    {% set tableRowHoverColor = "oklch(90.5% 0.093 164.15)" %} <!-- emerald 200 -->
-    {% set tableIconHoverColor = "oklch(59.6% 0.145 163.225)" %} <!-- emerald 600 -->
-    {% set closeFormIconHoverColor = "oklch(76.5% 0.177 163.223)" %} <!-- emerald 400 -->
-{% elif colorTheme == "blue-400" %}
-    {% set tableRowHoverColor = "oklch(88.2% 0.059 254.128)" %} <!-- blue 200 -->
-    {% set tableIconHoverColor = "oklch(54.6% 0.245 262.881)" %} <!-- blue 600 -->
-    {% set closeFormIconHoverColor = "oklch(70.7% 0.165 254.624)" %} <!-- blue 400 -->
-{% elif colorTheme == "violet-400" %}
-    {% set tableRowHoverColor = "oklch(89.4% 0.057 293.283)" %} <!-- violet 200 -->
-    {% set tableIconHoverColor = "oklch(54.1% 0.281 293.009)" %} <!-- violet 600 -->
-    {% set closeFormIconHoverColor = "oklch(70.2% 0.183 293.541)" %} <!-- violet 400 -->
-{% elif colorTheme == "fuchsia-400" %}
-    {% set tableRowHoverColor = "oklch(90.3% 0.076 319.62)" %} <!-- fuchsia 200 -->
-    {% set tableIconHoverColor = "oklch(59.1% 0.293 322.896)" %} <!-- fuchsia 600 -->
-    {% set closeFormIconHoverColor = "oklch(74% 0.238 322.16)" %} <!-- fuchsia 400 -->
-{% elif colorTheme == "rose-400" %}
-    {% set tableRowHoverColor = "oklch(89.2% 0.058 10.001)" %} <!-- rose 200 -->
-    {% set tableIconHoverColor = "oklch(58.6% 0.253 17.585)" %} <!-- rose 600 -->
-    {% set closeFormIconHoverColor = "oklch(71.2% 0.194 13.428)" %} <!-- rose 400 -->
-{% endif %}
-
 {% block css %}
     <style>
-        #tbody_all-clients tr:hover {
-            background-color: {{ tableRowHoverColor }};
-        }
+        #tbody_all-clients tr:hover { background-color: {{ table_row_hover_color_as_oklch }}; }
 
         .icon-wrapper {
             position: relative;
@@ -74,7 +50,7 @@
         <!-- Search -->
         <div class="w-full mb-4 relative">
             <div class="absolute top-1/2 -translate-y-1/2 left-2">
-                {{ heroicon_outline("magnifying-glass", width="1.25rem", height="1.25rem", color=tableIconHoverColor) }}
+                {{ heroicon_outline("magnifying-glass", width="1.25rem", height="1.25rem", color=table_icon_hover_color_as_oklch) }}
             </div>
             <input type="text" id="input_search" name="search" class="h-[2.25rem] w-full p-2 pl-8 border-2 rounded-md text-base" placeholder="Search...">
             <div class="absolute top-0 right-2 h-[2.25rem] flex items-center">
@@ -127,7 +103,7 @@
                                 >
                                     <div class="icon-wrapper overflow-hidden flex-shrink-0">
                                         <span class="icon outline">{{ heroicon_outline("pencil", width="1.25rem", height="1.25rem") }}</span>
-                                        <span class="icon solid">{{ heroicon_solid("pencil", width="1.25rem", height="1.25rem", color=tableIconHoverColor) }}</span>
+                                        <span class="icon solid">{{ heroicon_solid("pencil", width="1.25rem", height="1.25rem", color=table_icon_hover_color_as_oklch) }}</span>
                                     </div>
                                 </button>
                                 <!-- Remove Client Buttons -->
@@ -140,7 +116,7 @@
                                 >
                                     <div class="icon-wrapper overflow-hidden flex-shrink-0">
                                         <span class="icon outline">{{ heroicon_outline("trash", width="1.25rem", height="1.25rem") }}</span>
-                                        <span class="icon solid">{{ heroicon_solid("trash", width="1.25rem", height="1.25rem", color=tableIconHoverColor) }}</span>
+                                        <span class="icon solid">{{ heroicon_solid("trash", width="1.25rem", height="1.25rem", color=table_icon_hover_color_as_oklch) }}</span>
                                     </div>
                                 </button>
                                 <!-- Client Quote Profile Buttons -->
@@ -157,7 +133,7 @@
                                 >
                                     <div class="icon-wrapper overflow-hidden flex-shrink-0">
                                         <span class="icon outline">{{ heroicon_outline("document-currency-dollar", width="1.25rem", height="1.25rem") }}</span>
-                                        <span class="icon solid">{{ heroicon_solid("document-currency-dollar", width="1.25rem", height="1.25rem", color=tableIconHoverColor) }}</span>
+                                        <span class="icon solid">{{ heroicon_solid("document-currency-dollar", width="1.25rem", height="1.25rem", color=table_icon_hover_color_as_oklch) }}</span>
                                     </div>
                                 </button>
                             </div>
@@ -189,12 +165,12 @@
             <button id="btn_hide-client-form" class="cursor-pointer group">
                 <div class="form-icon-wrapper overflow-hidden flex-shrink-0">
                     <span class="icon outline">{{ heroicon_outline("x-circle", width="1.875rem", height="1.875rem") }}</span>
-                    <span class="icon solid">{{ heroicon_solid("x-circle", width="1.875rem", height="1.875rem", color=closeFormIconHoverColor) }}</span>
+                    <span class="icon solid">{{ heroicon_solid("x-circle", width="1.875rem", height="1.875rem", color=close_icon_hover_color_as_oklch) }}</span>
                 </div>
             </button>
         </div>
         <!-- Form -->
-        <form id="form_client-form" method="post" data-icon-hover-color="{{ tableIconHoverColor }}">
+        <form id="form_client-form" method="post">
             <div class="mb-2 flex flex-col gap-2">
                 <!-- Name -->
                 <div class="flex flex-col">
@@ -245,6 +221,8 @@
             </div>
             <!-- hidden input storing Client ID -->
             <div hidden><input type="text" id="input_client-form_client-id" name="client-id"></div>
+            <!-- hidden input storing the current page -->
+            <input type="text" id="input_current-page" name="current-page" value="{{ page }}" hidden>
             <!-- Form Submit Button -->
             <div class="flex justify-end">
                 <button id="btn_submit-client-form" type="submit" class="h-[2.25rem] pl-4 pr-4 bg-{{ colorTheme }} rounded-md text-base font-semibold cursor-pointer"></button>
@@ -287,7 +265,7 @@
             <button id="btn_hide-client-quote-profile-form" class="cursor-pointer group">
                 <div class="form-icon-wrapper overflow-hidden flex-shrink-0">
                     <span class="icon outline">{{ heroicon_outline("x-circle", width="1.875rem", height="1.875rem") }}</span>
-                    <span class="icon solid">{{ heroicon_solid("x-circle", width="1.875rem", height="1.875rem", color=closeFormIconHoverColor) }}</span>
+                    <span class="icon solid">{{ heroicon_solid("x-circle", width="1.875rem", height="1.875rem", color=close_icon_hover_color_as_oklch) }}</span>
                 </div>
             </button>
         </div>
@@ -299,7 +277,7 @@
             <p id="p_client-quote-profile-form_billing-address-2-placeholder"></p>
         </div>
         <!-- Form -->
-        <form id="form_client-quote-profile-form" method="post" data-table-icon-hover-color="{{ tableIconHoverColor }}">
+        <form id="form_client-quote-profile-form" method="post" data-table-icon-hover-color-as-oklch="{{ table_icon_hover_color_as_oklch }}">
             <div class="w-full mb-4 flex flex-col gap-2">
                 <div class="w-1/4 flex flex-col">
                     <!-- Minimum Monthly Charge -->
@@ -343,6 +321,8 @@
             </div>
         </form>
     </dialog>
+
+    <div class="bg-fuschia-200" hidden></div>
 {% endblock %}
 
 {% block javascript %}

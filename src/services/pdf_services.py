@@ -90,7 +90,7 @@ class PDFServices:
                 service_disclosure = f"""
                     <div style="font-size:12px;">
                         <h2 style="font-size:14px;">Service Disclosure</h2>
-                        <p>2" Trigger (with a tolerance of 0.5", hence the 1.5")</p>
+                        <p>2" Trigger (with a tolerance of 0.5")</p>
                         <ul>
                             <li>Snow accumulations less than the threshold will receive the deice services. In the event of sleet, ice, or wet roads with freezing temperatures, we will provide deice services.</li>
                         </ul>

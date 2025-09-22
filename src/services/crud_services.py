@@ -5,7 +5,7 @@ from sqlmodel import Session, select
 from sqlalchemy import func
 
 from database import get_session
-from models import Client, Service, ClientQuoteProfile, Quote, Invoice, AppSetting
+from models import Client, Service, ClientQuoteProfile, TempClientQuoteProfile, Quote, Invoice, AppSetting
 
 SessionDependency = Annotated[Session, Depends(get_session)]
 
@@ -207,6 +207,79 @@ class ClientQuoteProfileCRUD:
         session: Session
     ) -> tuple[bool, str, ClientQuoteProfile | None]:
         quote_profile = session.get(ClientQuoteProfile, id)
+        if not quote_profile:
+            return False, "Quote Profile not found.", None
+
+        session.delete(quote_profile)
+        session.commit()
+
+        return True, "Quote Profile deleted successfully.", quote_profile
+
+class TempClientQuoteProfileCRUD:
+    @staticmethod
+    def validate_data(
+        data: TempClientQuoteProfile
+    ) -> tuple[bool, str, TempClientQuoteProfile | None]:
+        try:
+            TempClientQuoteProfile.model_validate(data)
+            return True, "Validation successful.", data
+        except Exception as e:
+            return False, str(e), None
+        
+    @staticmethod
+    def create(
+        data: TempClientQuoteProfile,
+        session: Session
+    ) -> tuple[bool, str, TempClientQuoteProfile | None]:
+        (
+            is_valid,
+            message,
+            quote_profile,
+        ) = TempClientQuoteProfileCRUD.validate_data(data)
+        if not is_valid:
+            return False, message, None
+        
+        session.add(data)
+        session.commit()
+        session.refresh(data)
+
+        return True, "Quote Profile created successfully.", quote_profile
+    
+    @staticmethod
+    def get(
+        id: int,
+        session: Session
+    ) -> tuple[bool, str, TempClientQuoteProfile | None]:
+        quote_profile = session.get(TempClientQuoteProfile, id)
+        if not quote_profile:
+            return False, "Quote Profile not found.", None
+        return True, "Quote Profile found.", quote_profile
+
+    @staticmethod
+    def update(
+        quote_profile: TempClientQuoteProfile,
+        data: TempClientQuoteProfile,
+        session: Session
+    ) -> tuple[bool, str, TempClientQuoteProfile | None]:
+        try:
+            quote_profile.services = data.services
+            quote_profile.grand_total = data.grand_total
+            quote_profile.min_monthly_charge = data.min_monthly_charge
+
+            session.add(quote_profile)
+            session.commit()
+            session.refresh(quote_profile)
+
+            return True, "Quote Profile updated successfully.", quote_profile
+        except Exception as e:
+            return False, str(e), None
+
+    @staticmethod
+    def delete(
+        id: int,
+        session: Session
+    ) -> tuple[bool, str, TempClientQuoteProfile | None]:
+        quote_profile = session.get(TempClientQuoteProfile, id)
         if not quote_profile:
             return False, "Quote Profile not found.", None
 

@@ -4,36 +4,10 @@
     Quotes
 {% endblock %}
 
-{% if colorTheme == "emerald-400" %}
-    {% set tableRowHoverColor = "oklch(90.5% 0.093 164.15)" %} <!-- emerald 200 -->
-    {% set tableIconHoverColor = "oklch(59.6% 0.145 163.225)" %} <!-- emerald 600 -->
-    {% set closeFormIconHoverColor = "oklch(76.5% 0.177 163.223)" %} <!-- emerald 400 -->
-{% elif colorTheme == "blue-400" %}
-    {% set tableRowHoverColor = "oklch(88.2% 0.059 254.128)" %} <!-- blue 200 -->
-    {% set tableIconHoverColor = "oklch(54.6% 0.245 262.881)" %} <!-- blue 600 -->
-    {% set closeFormIconHoverColor = "oklch(70.7% 0.165 254.624)" %} <!-- blue 400 -->
-{% elif colorTheme == "violet-400" %}
-    {% set tableRowHoverColor = "oklch(89.4% 0.057 293.283)" %} <!-- violet 200 -->
-    {% set tableIconHoverColor = "oklch(54.1% 0.281 293.009)" %} <!-- violet 600 -->
-    {% set closeFormIconHoverColor = "oklch(70.2% 0.183 293.541)" %} <!-- violet 400 -->
-{% elif colorTheme == "fuchsia-400" %}
-    {% set tableRowHoverColor = "oklch(90.3% 0.076 319.62)" %} <!-- fuchsia 200 -->
-    {% set tableIconHoverColor = "oklch(59.1% 0.293 322.896)" %} <!-- fuchsia 600 -->
-    {% set closeFormIconHoverColor = "oklch(74% 0.238 322.16)" %} <!-- fuchsia 400 -->
-{% elif colorTheme == "rose-400" %}
-    {% set tableRowHoverColor = "oklch(89.2% 0.058 10.001)" %} <!-- rose 200 -->
-    {% set tableIconHoverColor = "oklch(58.6% 0.253 17.585)" %} <!-- rose 600 -->
-    {% set closeFormIconHoverColor = "oklch(71.2% 0.194 13.428)" %} <!-- rose 400 -->
-{% endif %}
-
 {% block css %}
     <style>
-        #tbody_all-quotes tr:hover {
-            background-color: {{ tableRowHoverColor }};
-        }
-        #tbody_all-clients tr:hover {
-            background-color: {{ tableRowHoverColor }};
-        }
+        #tbody_all-quotes tr:hover { background-color: {{ table_row_hover_color_as_oklch }}; }
+        #tbody_all-clients tr:hover { background-color: {{ table_row_hover_color_as_oklch }}; }
 
         .icon-wrapper {
             position: relative;
@@ -77,7 +51,7 @@
         <!-- Search -->
         <div class="w-full mb-4 relative">
             <div class="absolute top-1/2 -translate-y-1/2 left-2">
-                {{ heroicon_outline("magnifying-glass", width="1.25rem", height="1.25rem", color=tableIconHoverColor) }}
+                {{ heroicon_outline("magnifying-glass", width="1.25rem", height="1.25rem", color=table_icon_hover_color_as_oklch) }}
             </div>
             <input type="text" id="input_search" name="search" class="h-[2.25rem] w-full p-2 pl-8 border-2 rounded-md text-base" placeholder="Search...">
             <div class="absolute top-0 right-2 h-[2.25rem] flex items-center">
@@ -116,7 +90,7 @@
                                         <a href="/download_quote?client_id={{ client.id }}&quote_id={{ quote.id }}" class="flex cursor-pointer">
                                             <div class="icon-wrapper overflow-hidden flex-shrink-0">
                                                 <span class="icon outline">{{ heroicon_outline("arrow-down-on-square", width="1.25rem", height="1.25rem") }}</span>
-                                                <span class="icon solid">{{ heroicon_solid("arrow-down-on-square", width="1.25rem", height="1.25rem", color=tableIconHoverColor) }}</span>
+                                                <span class="icon solid">{{ heroicon_solid("arrow-down-on-square", width="1.25rem", height="1.25rem", color=table_icon_hover_color_as_oklch) }}</span>
                                             </div>
                                         </a>
                                     </td>
@@ -149,7 +123,7 @@
             <button id="btn_hide-batch-quotes-form" class="cursor-pointer group">
                 <div class="form-icon-wrapper overflow-hidden flex-shrink-0">
                     <span class="icon outline">{{ heroicon_outline("x-circle", width="1.875rem", height="1.875rem") }}</span>
-                    <span class="icon solid">{{ heroicon_solid("x-circle", width="1.875rem", height="1.875rem", color=closeFormIconHoverColor) }}</span>
+                    <span class="icon solid">{{ heroicon_solid("x-circle", width="1.875rem", height="1.875rem", color=close_icon_hover_color_as_oklch) }}</span>
                 </div>
             </button>
         </div>
@@ -158,7 +132,7 @@
                 <!-- Search -->
                 <div class="w-full mb-4 relative">
                     <div class="absolute top-1/2 -translate-y-1/2 left-2">
-                        {{ heroicon_outline("magnifying-glass", width="1.25rem", height="1.25rem", color=tableIconHoverColor) }}
+                        {{ heroicon_outline("magnifying-glass", width="1.25rem", height="1.25rem", color=table_icon_hover_color_as_oklch) }}
                     </div>
                     <input type="text" id="input_search" name="search" class="h-[2.25rem] w-full p-2 pl-8 border-2 rounded-md text-base" placeholder="Search...">
                     <div class="absolute top-0 right-2 h-[2.25rem] flex items-center">
@@ -190,18 +164,20 @@
                                 data-city="{{ client.city }}"
                                 data-state="{{ client.state }}"
                                 data-zip-code="{{ client.zip_code }}"
+                                data-table-row-hover-color-as-oklch="{{ table_row_hover_color_as_oklch}}"
                                 class="h-[2.25rem] cursor-pointer"
                             >
                                 <td class="p-4 align-middle">
-                                    <button
-                                        data-client-id="{{ client.id}}"
-                                        class="cursor-pointer"
-                                    >
-                                        <div class="icon-wrapper overflow-hidden flex-shrink-0">
-                                            <span class="icon outline">{{ heroicon_outline("plus-circle", width="1.25rem", height="1.25rem") }}</span>
-                                            <span class="icon solid">{{ heroicon_solid("plus-circle", width="1.25rem", height="1.25rem", color=tableIconHoverColor) }}</span>
-                                        </div>
-                                    </button>
+                                    <div class="h-full flex items-center">
+                                        <!-- Add Client to Batch Quote Buttons -->
+                                        <input
+                                            id="chkbx_add-client-to-batch-quote_client-{{ client.id }}"
+                                            type="checkbox"
+                                            data-client-id="{{ client.id}}"
+                                            style="accent-color: {{ table_icon_hover_color_as_oklch }};"
+                                            class="w-5 h-5 rounded border-gray-300 cursor-pointer"
+                                        />
+                                    </div>
                                 </td>
                                 <td class="p-4">{{ client.name }}</td>
                                 <td class="p-4">{{ client.business_name }}</td>
@@ -211,6 +187,7 @@
                     </table>
                 </div>
             </div>
+            <!-- Client Quote Profiles -->
             <div class="w-full flex flex-col">
                 <h2 class="mb-4 text-2xl font-bold">Client Quote Profile</h2>
                 <!-- Client Information -->
@@ -221,19 +198,19 @@
                     <p id="p_batch-quotes-form_billing-address-2-placeholder"></p>
                 </div>
                 <!-- Form -->
-                <form id="form_batch-quotes-form" method="post" action="/quotes/batch_send_quotes" data-table-icon-hover-color="{{ tableIconHoverColor }}" class="h-full flex flex-col justify-between">
+                <form id="form_batch-quotes-form" method="post" action="/quotes/batch_send_quotes" data-table-icon-hover-color="{{ table_icon_hover_color_as_oklch }}" class="h-full flex flex-col justify-between">
                     {% for client in clients %}
-                        <div id="div_client-quote-profile_client-{{ client.id }}" class="hidden">
+                        <div id="div_client-quote-profile_client-{{ client.id }}" style="display:none;">
                             <div class="w-full mb-4 flex flex-col gap-2">
                                 <div class="w-1/4 flex flex-col">
                                     <!-- Minimum Monthly Charge -->
                                     <label for="input_batch-quotes-form_client-quote-profile_min-monthly-charge_client-{{ client.id }}" class="pr-2 text-base font-bold">Minimum Monthly Charge (USD):</label>
-                                    <input type="text" id="input_batch-quotes-form_client-quote-profile_min-monthly-charge_client-{{ client.id }}" name="min-monthly-charge" class="h-[2rem] p-2 border rounded-md text-base" required>
+                                    <input type="text" id="input_batch-quotes-form_client-quote-profile_min-monthly-charge_client-{{ client.id }}" name="min-monthly-charge" class="h-[2rem] p-2 border rounded-md text-base">
                                 </div>
                                 <div class="w-1/4 flex flex-col">
                                     <!-- Premium Salt Upcharge -->
                                     <label for="input_batch-quotes-form_client-quote-profile_premium-salt-upcharge_client-{{ client.id }}" class="pr-2 text-base font-bold">Premium Salt Upcharge (USD):</label>
-                                    <input type="text" id="input_batch-quotes-form_client-quote-profile_premium-salt-upcharge_client-{{ client.id }}" name="premium-salt-upcharge" class="h-[2rem] p-2 border rounded-md text-base" required>
+                                    <input type="text" id="input_batch-quotes-form_client-quote-profile_premium-salt-upcharge_client-{{ client.id }}" name="premium-salt-upcharge" class="h-[2rem] p-2 border rounded-md text-base">
                                 </div>
                             </div>
                             <!-- Table of Services for the Client -->

@@ -47,6 +47,7 @@ def render_clients_page(
     Parameters:
     - request: The incoming HTTP request object.
     - session: A SQLModel session dependency for database access.
+    - page: The page number to display for table pagination (default is 1).
 
     Returns:
     - `HTMLResponse`: The rendered HTML content of the clients page.
@@ -77,6 +78,10 @@ def render_clients_page(
         for service in services
     ]
 
+    # Get color theme and page colors
+    color_theme = session.get(AppSetting, "0001").setting_value
+    colors = utils.get_colors(color_theme)
+
     return templates.TemplateResponse(
         request=request, 
         name="clients.html", 
@@ -89,7 +94,8 @@ def render_clients_page(
             "per_page": per_page,
             "total_pages": total_pages,
             "theme": session.get(AppSetting, "0000").setting_value,
-            "colorTheme": session.get(AppSetting, "0001").setting_value
+            "colorTheme": color_theme,
+            **colors
         }
     )
 
@@ -119,6 +125,7 @@ def add_client(
     - zip_code: The zip code of the client.
     - email: The email address of the client.
     - phone: The phone number of the client.
+    - page: The page number to display for table pagination (default is 1).
 
     Returns:
     - `JSONResponse`: A JSON object containing a status message, status code, 
@@ -194,7 +201,8 @@ def edit_client(
     new_zip_code: str = Form(..., alias="zip-code"),
     new_email: str = Form(..., alias="email"),
     new_phone: str = Form(..., alias="phone"),
-    client_id: int = Form(..., alias="client-id")
+    client_id: int = Form(..., alias="client-id"),
+    current_page: int = Form(..., alias="current-page")
 ) -> JSONResponse:
     """
     Edits attributes of an existing client.
@@ -210,6 +218,7 @@ def edit_client(
     - new_email: The email address of the client.
     - new_phone: The phone number of the client.
     - client_id: The unique ID of the client to edit.
+    - current_page: The current page of clients being viewed in the table.
 
     Returns:
     - `JSONResponse`: A JSON object containing a status message, status code, 
@@ -265,6 +274,7 @@ def edit_client(
                 "email": updated_client.email,
                 "phone": updated_client.phone,
             },
+            "redirect_to": f"/clients?page={current_page}",
         },
         status_code=200,
     )
@@ -282,6 +292,8 @@ def remove_client(
     Parameters:
     - session: A SQLModel session dependency for database access.
     - client_id: The unique ID of the client to remove.
+    - current_page: The current page of clients being viewed in the table.
+    
 
     Returns:
     - `JSONResponse`: A JSON object containing a status message, status code, 
@@ -581,11 +593,12 @@ async def send_quote(
     
     return RedirectResponse(url="/clients/", status_code=303)
 
-@router.get("/get_quote_profile/{client_id}", response_class=JSONResponse)
+@router.get("/get_client_quote_profile/{client_id}", response_class=JSONResponse)
 async def get_client_quote_profile(
     session: SessionDependency,
     client_id: int
 ) -> JSONResponse:
+    # Get the client quote profile from the database
     get_status, quote_profile = utils.call_service_or_404(
         ClientQuoteProfileCRUD.get,
         client_id,

@@ -31,29 +31,67 @@ document.addEventListener("DOMContentLoaded", async function() {
             closeFormDialog(batchQuotesFormDialog);
         });
 
-        batchQuotesFormDialog.addEventListener("submit", async(e) => {
-            e.preventDefault();
-            
-            batchQuotesForm.querySelectorAll('[id^="div_client-quote-profile_client-"]').forEach((div) => {
-                console.log(div);
+        // "Open" (Show) the Client Quote Profile for the selected client
+        document.querySelectorAll('[id^="tr_client-"]').forEach((row) => {
+            row.addEventListener("click", async (e) => {
+                // If the click originated from a checkbox, ignore it
+                if (e.target.tagName === "INPUT" && e.target.type === "checkbox") { return; }
+
+                // Highlight the selected client row
+                const tableRowHoverColorAsOklch = e.currentTarget.dataset.tableRowHoverColorAsOklch;
+                document.querySelectorAll('[id^="tr_client-"]').forEach((row) => {
+                    row.style.backgroundColor = "#fff";
+                });
+                e.currentTarget.style.backgroundColor = tableRowHoverColorAsOklch;
+
+                // Show the selected client's quote profile
+                showClientQuoteProfile(e.currentTarget);
             });
         });
 
-    ////////////////////////
-    /* Events */
-    ///////////////////////
-    document.querySelectorAll('[id^="tr_client-"]').forEach((row) => {
-        row.addEventListener("click", async (e) => {
-            // Populate placeholders with the selected client's data
-            document.getElementById("p_batch-quotes-form_name-placeholder").innerText = e.currentTarget.dataset.name;
-            document.getElementById("p_batch-quotes-form_business-name-placeholder").innerText = e.currentTarget.dataset.businessName;
-            document.getElementById("p_batch-quotes-form_billing-address-1-placeholder").innerText = e.currentTarget.dataset.streetAddress;
-            document.getElementById("p_batch-quotes-form_billing-address-2-placeholder").innerText = `${e.currentTarget.dataset.city}, ${e.currentTarget.dataset.state} ${e.currentTarget.dataset.zipCode}`;
+    //////////////////////
+    /* Form Submission */
+    ////////////////////
 
-            // Show the selected client's quote profile
-            showClientQuoteProfile(e.currentTarget);
+        // Submit the Batch Quotes Form
+        batchQuotesFormDialog.addEventListener("submit", async(e) => {
+            e.preventDefault();
+
+            // Get a list of the selected clients' ids
+            let clientIds = [];
+            document.querySelectorAll('[id^="chkbx_add-client-to-batch-quote_client-"]').forEach((checkbox) => {
+                if (checkbox.checked) {
+                    clientIds.push(checkbox.dataset.clientId);
+                }
+            });
+
+            try {
+                const response = await fetch(batchQuotesForm.action, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        "client_ids": clientIds
+                    })
+                });
+
+                if (response.ok) {
+                    data = await response.json();
+                    // Close the form dialog
+                    closeFormDialog(batchQuotesFormDialog);
+                    // Store toast message before reload
+                    localStorage.setItem("toastType", "success");
+                    localStorage.setItem("toastMessage", data.detail);
+                    // Reload the page according to the redirect url provided in the JSON response body
+                    window.location.href = data.redirect_to;
+                }
+            } catch (error) {
+                closeFormDialog(batchQuotesFormDialog);
+                showToast("error", error.message || "Unexpected Error");
+            }
         });
-    });
+
     //end#region BATCH QUOTES FORM
 
     //#region FUNCTIONS
@@ -63,6 +101,9 @@ document.addEventListener("DOMContentLoaded", async function() {
      * @returns {void}
      */
     function openFormDialog(formDialog) {
+        const firstRow = document.querySelector('[id^="tr_client-"]');
+        if (firstRow) { firstRow.click(); }
+
         formDialog.removeAttribute("hidden");
         formDialog.showModal();
     }
@@ -101,59 +142,76 @@ document.addEventListener("DOMContentLoaded", async function() {
         }, 3800);
     }
 
+    /**
+     * Show a client's quote profile in the Batch Quotes Form.
+     * @param {HTMLElement} eventElement - The row in the all clients table that was clicked.
+     * @returns {void}
+     */
     function showClientQuoteProfile(eventElement) {
         const clientId = eventElement.dataset.clientId;
 
         // Hide all client quote profile divs, then show only the selected client's quote profile div
         batchQuotesForm.querySelectorAll('[id^="div_client-quote-profile_client-"]').forEach((div) => {
-            div.classList.add("hidden");
+            div.style.display = "none";
         });
-        document.getElementById(`div_client-quote-profile_client-${clientId}`).classList.remove("hidden");
+        document.getElementById(`div_client-quote-profile_client-${clientId}`).style.display = "block";
 
-        fetch(`/clients/get_quote_profile/${clientId}`)
-            .then(response => {
-                if (response.status === 200) {
-                    return response.json();
-                }
-                else {
-                    // Add an empty service row to the Client Quote Profile Form
-                    addRowToClientQuoteProfileServicesTable(clientId);
-                    return null;
-                }
-            })
-            .then(data => {
-                if (data) {
-                    // Populate the client quote profile div with the client's existing quote profile data
-                    populateClientQuoteProfile(data);
-                }
-            });
+        // Populate placeholders with the selected client's data
+        document.getElementById("p_batch-quotes-form_name-placeholder").innerText = eventElement.dataset.name;
+        document.getElementById("p_batch-quotes-form_business-name-placeholder").innerText = eventElement.dataset.businessName;
+        document.getElementById("p_batch-quotes-form_billing-address-1-placeholder").innerText = eventElement.dataset.streetAddress;
+        document.getElementById("p_batch-quotes-form_billing-address-2-placeholder").innerText = `${eventElement.dataset.city}, ${eventElement.dataset.state} ${eventElement.dataset.zipCode}`;
+
+        fetch("/quotes/get_temp_client_quote_profile", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ "client_id": clientId })
+        })
+        .then(response => {
+            if (response.status === 200) {
+                return response.json();
+            }
+            else {
+                // Add an empty service row to the Client Quote Profile Form
+                addRowToClientQuoteProfileServicesTable(clientId);
+                return null;
+            }
+        })
+        .then(data => {
+            if (data) {
+                // Populate the client quote profile div with the client's existing quote profile data
+                populateTempClientQuoteProfile(data);
+            }
+        });
     }
 
     /**
      * Populate the Client Quote Profile services table with existing data.
      * @param {void} data 
      */
-    function populateClientQuoteProfile(data) {
-        const servicesTable = document.getElementById(`tbody_batch-quotes-form_client-quote-profile-services_client-${data.quote_profile.client_id}`);
+    function populateTempClientQuoteProfile(data) {
+        const servicesTable = document.getElementById(`tbody_batch-quotes-form_client-quote-profile-services_client-${data.temp_quote_profile.client_id}`);
         servicesTable.innerHTML = "";
         
         // Populate the minimum monthly charge
-        document.getElementById(`input_batch-quotes-form_client-quote-profile_min-monthly-charge_client-${data.quote_profile.client_id}`).value = Number(data.quote_profile.min_monthly_charge).toFixed(2);
+        document.getElementById(`input_batch-quotes-form_client-quote-profile_min-monthly-charge_client-${data.temp_quote_profile.client_id}`).value = Number(data.temp_quote_profile.min_monthly_charge).toFixed(2);
         // Populate the premium salt upcharge cost
-        document.getElementById(`input_batch-quotes-form_client-quote-profile_premium-salt-upcharge_client-${data.quote_profile.client_id}`).value = Number(data.quote_profile.premium_salt_upcharge).toFixed(2);
-        // Add and populate a service row for each existing service in the client's quote profile
-        for (let i = 0; i < data.quote_profile.services.length; ++i) {
-            addRowToClientQuoteProfileServicesTable(data.quote_profile.client_id);
+        document.getElementById(`input_batch-quotes-form_client-quote-profile_premium-salt-upcharge_client-${data.temp_quote_profile.client_id}`).value = Number(data.temp_quote_profile.premium_salt_upcharge).toFixed(2);
+        // Add and populate a service row for each existing service in the client's temp quote profile
+        for (let i = 0; i < data.temp_quote_profile.services.length; ++i) {
+            addRowToClientQuoteProfileServicesTable(data.temp_quote_profile.client_id);
             const newRow = servicesTable.lastElementChild;
-            newRow.getElementsByTagName("select")[0].value = data.quote_profile.services[i].service_name;
-            newRow.getElementsByTagName("input")[0].value = data.quote_profile.services[i].quantity;
-            newRow.getElementsByTagName("select")[1].value = data.quote_profile.services[i].per_unit;
-            newRow.getElementsByTagName("input")[1].value = Number(data.quote_profile.services[i].unit_price).toFixed(2);
-            newRow.getElementsByTagName("input")[2].value = Number(data.quote_profile.services[i].tax).toFixed(2);
-            newRow.getElementsByTagName("p")[0].innerText = Number(data.quote_profile.services[i].total_price).toFixed(2);
-            newRow.getElementsByTagName("input")[3].value = Number(data.quote_profile.services[i].total_price).toFixed(2);
+            newRow.getElementsByTagName("select")[0].value = data.temp_quote_profile.services[i].service_name;
+            newRow.getElementsByTagName("input")[0].value = data.temp_quote_profile.services[i].quantity;
+            newRow.getElementsByTagName("select")[1].value = data.temp_quote_profile.services[i].per_unit;
+            newRow.getElementsByTagName("input")[1].value = Number(data.temp_quote_profile.services[i].unit_price).toFixed(2);
+            newRow.getElementsByTagName("input")[2].value = Number(data.temp_quote_profile.services[i].tax).toFixed(2);
+            newRow.getElementsByTagName("p")[0].innerText = Number(data.temp_quote_profile.services[i].total_price).toFixed(2);
+            newRow.getElementsByTagName("input")[3].value = Number(data.temp_quote_profile.services[i].total_price).toFixed(2);
         }
-    }
+    }    
 
     /**
      * Add a service row to the Client Quote Profile services table.
@@ -238,6 +296,9 @@ document.addEventListener("DOMContentLoaded", async function() {
         });
 
         // Add event listeners to the new row
+        newRow.addEventListener("change", (e) => {
+            saveTempClientQuoteProfile(e.currentTarget, clientId);
+        });
         newRow.getElementsByTagName("button")[0].addEventListener("click", (e) => {
             // Remove a service row from the Client Quote Profile services table
             removeServiceFromClientQuoteProfileServicesTable(e.currentTarget);
@@ -257,6 +318,40 @@ document.addEventListener("DOMContentLoaded", async function() {
             newRow.getElementsByTagName("p")[0].innerText = Number(basePrice + taxAmount).toFixed(2);
             newRow.getElementsByTagName("input")[3].value = Number(basePrice + taxAmount);
         });
+    }
+
+    function saveTempClientQuoteProfile(eventElement, clientId) {
+        minMonthlyCharge = Number(document.getElementById(`input_batch-quotes-form_client-quote-profile_min-monthly-charge_client-${clientId}`).value);
+        premiumSaltUpcharge = Number(document.getElementById(`input_batch-quotes-form_client-quote-profile_premium-salt-upcharge_client-${clientId}`).value);
+
+        // Extract the list of services
+        let services = [];
+        let grandTotal = 0;
+        document.getElementById(`tbody_batch-quotes-form_client-quote-profile-services_client-${clientId}`).querySelectorAll("tr").forEach((row) => {
+            services.push({
+                "service_name": row.getElementsByTagName("select")[0].value,
+                "quantity": row.getElementsByTagName("input")[0].value,
+                "per_unit": row.getElementsByTagName("select")[1].value, //? row.getElementsByTagName("input")[1].value != "-1" : "--",
+                "unit_price": row.getElementsByTagName("input")[1].value,
+                "tax": row.getElementsByTagName("input")[2].value,
+                "total_price": row.getElementsByTagName("input")[3].value
+            });
+            grandTotal += Number(row.getElementsByTagName("input")[3].value);
+        });
+
+        fetch("/quotes/save_temp_client_quote_profile", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                "client_id": clientId,
+                "min_monthly_charge": minMonthlyCharge,
+                "premium_salt_upcharge": premiumSaltUpcharge,
+                "services": services,
+                "grand_total": grandTotal
+            })
+        })
     }
     //#endregion FUNCTIONS
 });
