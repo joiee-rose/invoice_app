@@ -92,6 +92,14 @@ document.addEventListener("DOMContentLoaded", async function() {
             }
         });
 
+        // 
+        document.querySelectorAll('[id^="div_client-quote-profile_client-"]').forEach((div) => {
+            div.addEventListener("change", () => {
+                const clientId = div.dataset.clientId;
+                saveTempClientQuoteProfile(clientId);
+            });
+        });
+
     //end#region BATCH QUOTES FORM
 
     //#region FUNCTIONS
@@ -296,8 +304,8 @@ document.addEventListener("DOMContentLoaded", async function() {
         });
 
         // Add event listeners to the new row
-        newRow.addEventListener("change", (e) => {
-            saveTempClientQuoteProfile(e.currentTarget, clientId);
+        newRow.addEventListener("change", () => {
+            saveTempClientQuoteProfile(clientId);
         });
         newRow.getElementsByTagName("button")[0].addEventListener("click", (e) => {
             // Remove a service row from the Client Quote Profile services table
@@ -320,7 +328,7 @@ document.addEventListener("DOMContentLoaded", async function() {
         });
     }
 
-    function saveTempClientQuoteProfile(eventElement, clientId) {
+    function saveTempClientQuoteProfile(clientId) {
         minMonthlyCharge = Number(document.getElementById(`input_batch-quotes-form_client-quote-profile_min-monthly-charge_client-${clientId}`).value);
         premiumSaltUpcharge = Number(document.getElementById(`input_batch-quotes-form_client-quote-profile_premium-salt-upcharge_client-${clientId}`).value);
 

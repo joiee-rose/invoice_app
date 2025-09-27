@@ -313,6 +313,8 @@
             <button type="button" id="btn_add-client-service" class="h-[2.25rem] pl-4 pr-4 bg-{{ colorTheme }} rounded-md text-base font-semibold cursor-pointer">Add Service</button>
             <!-- hidden input storing Client ID -->
             <input type="text" id="input_client-quote-profile-form_client-id" name="client-id" hidden>
+            <!-- hidden input storing the current page -->
+            <input type="text" id="input_current-page" name="current-page" value="{{ page }}" hidden>
             <div class="mt-4 flex flex-row gap-4 justify-end">
                 <!-- Form Submit Button - Save Client Quote Profile -->
                 <button id="btn_save-client-quote-profile" type="submit" class="h-[2.25rem] pl-4 pr-4 bg-{{ colorTheme }} rounded-md text-base font-semibold cursor-pointer">Save</button>

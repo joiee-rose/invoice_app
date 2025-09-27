@@ -189,9 +189,10 @@ class ClientQuoteProfileCRUD:
         session: Session
     ) -> tuple[bool, str, ClientQuoteProfile | None]:
         try:
+            quote_profile.min_monthly_charge = data.min_monthly_charge
+            quote_profile.premium_salt_upcharge = data.premium_salt_upcharge
             quote_profile.services = data.services
             quote_profile.grand_total = data.grand_total
-            quote_profile.min_monthly_charge = data.min_monthly_charge
 
             session.add(quote_profile)
             session.commit()
@@ -262,9 +263,10 @@ class TempClientQuoteProfileCRUD:
         session: Session
     ) -> tuple[bool, str, TempClientQuoteProfile | None]:
         try:
+            quote_profile.min_monthly_charge = data.min_monthly_charge
+            quote_profile.premium_salt_upcharge = data.premium_salt_upcharge
             quote_profile.services = data.services
             quote_profile.grand_total = data.grand_total
-            quote_profile.min_monthly_charge = data.min_monthly_charge
 
             session.add(quote_profile)
             session.commit()

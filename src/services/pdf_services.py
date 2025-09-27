@@ -153,7 +153,7 @@ class PDFServices:
                                     <td style="border:none;"></td>
                                     <td style="border:none;"></td>
                                     <td colspan="2" style="height:24px; padding-top:6px; text-align:center; font-size:14px; font-weight:bold; border:1px solid #000;">Total (USD)</td>
-                                    <td style="height:24px; padding-top:5px; text-align:center; font-size:12px; border:1px solid #000;">{grand_total}</td>
+                                    <td style="height:24px; padding-top:5px; text-align:center; font-size:12px; border:1px solid #000;">{Decimal(grand_total).quantize(Decimal("0.00"))}</td>
                                 </tr>
                             </tbody>
                         </table>

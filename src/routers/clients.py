@@ -345,13 +345,14 @@ def remove_client(
         status_code=200,
     )
 
-@router.post("/save_quote_profile")
+@router.post("/save_client_quote_profile")
 async def save_client_quote_profile(
     request: Request,
     session: SessionDependency,
     client_id: int = Form(..., alias="client-id"),
     min_monthly_charge: Decimal = Form(..., alias="min-monthly-charge"),
     premium_salt_upcharge: Decimal = Form(..., alias="premium-salt-upcharge"),
+    current_page: int = Form(..., alias="current-page")
 ) -> JSONResponse:
     """
     Save the client's quote profile. If a quote profile already exists for the 
@@ -396,16 +397,17 @@ async def save_client_quote_profile(
         grand_total += Decimal(form.getlist("total-price")[i]) 
 
     # Validate the new client quote profile data
-    _, new_client_quote_profile = utils.call_service_or_422(
+    validate_status, new_client_quote_profile = utils.call_service_or_422(
         ClientQuoteProfileCRUD.validate_data,
         ClientQuoteProfile(
             client_id=client_id,
-            min_monthly_charge=min_monthly_charge,
-            premium_salt_upcharge=premium_salt_upcharge,
+            min_monthly_charge=Decimal(min_monthly_charge),
+            premium_salt_upcharge=Decimal(premium_salt_upcharge),
             services=services,
-            grand_total=grand_total
+            grand_total=Decimal(grand_total)
         )
     )
+    print("validate status: ", validate_status)
 
     # Check if client quote profile already exists
     existing_client_quote_profile = session.get(ClientQuoteProfile, client_id)
@@ -442,6 +444,7 @@ async def save_client_quote_profile(
                 "services": client_quote_profile.services,
                 "grand_total": str(client_quote_profile.grand_total)
             },
+            "redirect_to": f"/clients?page={current_page}",
         },
         status_code=200,
     )
@@ -453,6 +456,7 @@ async def send_quote(
     client_id: int = Form(..., alias="client-id"),
     min_monthly_charge: Decimal = Form(..., alias="min-monthly-charge"),
     premium_salt_upcharge: Decimal = Form(..., alias="premium-salt-upcharge"),
+    current_page: int = Form(..., alias="current-page")
 ):
     """
     Send a quote as a PDF to the client via email.
@@ -585,13 +589,19 @@ async def send_quote(
     )
     
     # Create the new quote in the database
-    _, quote = utils.call_service_or_500(
+    quote_status, quote = utils.call_service_or_500(
         QuoteCRUD.create,
         new_quote,
         session
     )
-    
-    return RedirectResponse(url="/clients/", status_code=303)
+
+    return JSONResponse(
+        content={
+            "detail": quote_status,
+            "redirect_to": f"/clients?page={current_page}",
+        },
+        status_code=200
+    )
 
 @router.get("/get_client_quote_profile/{client_id}", response_class=JSONResponse)
 async def get_client_quote_profile(

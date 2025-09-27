@@ -152,7 +152,6 @@ document.addEventListener("DOMContentLoaded", async function() {
     const clientQuoteProfileFormDialog = document.getElementById("dialog_client-quote-profile-form");
     const clientQuoteProfileForm = document.getElementById("form_client-quote-profile-form");
     const servicesOptions = JSON.parse(document.getElementById("services-data").textContent);
-    let cachedQuoteProfiles = [];
     
     ////////////////////////
     /* Open/Close Events */
@@ -190,21 +189,11 @@ document.addEventListener("DOMContentLoaded", async function() {
                     data = await response.json();
                     // Close the form dialog
                     closeFormDialog(clientQuoteProfileFormDialog);
-                    // Show success toast notification
-                    showToast("success", data.detail);
-                    // Add the new client quote profile to a JSON list for storing profiles created during this session (before page refresh)
-                    cachedQuoteProfiles.push(
-                        {
-                            "client_id": data.client_id,
-                            "quote_profile": {
-                                "client_id": data.quote_profile.client_id,
-                                "min_monthly_charge": data.quote_profile.min_monthly_charge,
-                                "premium_salt_upcharge": data.quote_profile.premium_salt_upcharge,
-                                "services": data.quote_profile.services,
-                                "grand_total": data.quote_profile.grand_total,
-                            },
-                        },
-                    );
+                    // Store toast message before reload
+                    localStorage.setItem("toastType", "success");
+                    localStorage.setItem("toastMessage", data.detail);
+                    // Reload the page according to the redirect url provided in the JSON response body
+                    window.location.href = data.redirect_to;
                 } else {
                     data = await response.json();
                     if (response.status == 422) {
@@ -224,7 +213,7 @@ document.addEventListener("DOMContentLoaded", async function() {
         // Save the Client Quote Profile Form
         document.getElementById("btn_save-client-quote-profile").addEventListener("click", () => {
             // Set the form action
-            clientQuoteProfileForm.action = "/clients/save_quote_profile";
+            clientQuoteProfileForm.action = "/clients/save_client_quote_profile";
         });
 
         // Generate & Send Quote from the Client Quote Profile Form
@@ -380,35 +369,24 @@ document.addEventListener("DOMContentLoaded", async function() {
         document.getElementById("p_client-quote-profile-form_billing-address-2-placeholder").innerText = `${eventElement.dataset.city}, ${eventElement.dataset.state} ${eventElement.dataset.zipCode}`;
         document.getElementById("input_client-quote-profile-form_client-id").value = eventElement.dataset.clientId;
 
-        // Check if the client has had a quote profile created during this session (before page refresh)
-        const cachedQuoteProfile = cachedQuoteProfiles.find(
-            quoteProfile => Number(eventElement.dataset.clientId) === Number(quoteProfile.client_id)
-        );
-        
-        if (cachedQuoteProfile) {
-            populateClientQuoteProfile(cachedQuoteProfile);
-            openFormDialog(clientQuoteProfileFormDialog);
-            return;
-        } else {
-            // Check if client has a quote profile in the database
-            fetch(`/clients/get_quote_profile/${eventElement.dataset.clientId}`)
-                .then(response => {
-                    if (response.status === 200) {
-                        return response.json();
-                    }
-                    else {
-                        // Add an empty service row to the Client Quote Profile Form
-                        addRowToClientQuoteProfileServicesTable();
-                        return null;
-                    }
-                })
-                .then(data => {
-                    if (data) {
-                        // Populate the Client Quote Profile Form with the client's existing quote profile data
-                        populateClientQuoteProfile(data);
-                    }
-                })
+        // Check if client has a quote profile in the database
+        fetch(`/clients/get_client_quote_profile/${eventElement.dataset.clientId}`)
+        .then(response => {
+            if (response.status === 200) {
+                return response.json();
             }
+            else {
+                // Add an empty service row to the Client Quote Profile Form
+                addRowToClientQuoteProfileServicesTable();
+                return null;
+            }
+        })
+        .then(data => {
+            if (data) {
+                // Populate the Client Quote Profile Form with the client's existing quote profile data
+                populateClientQuoteProfile(data);
+            }
+        })
 
         // Open the form dialog
         openFormDialog(clientQuoteProfileFormDialog);

@@ -188,7 +188,7 @@
                 </div>
             </div>
             <!-- Client Quote Profiles -->
-            <div class="w-full flex flex-col">
+            <div class="w-full flex flex-col max-h-[calc(100vh-12rem)] overflow-y-scroll">
                 <h2 class="mb-4 text-2xl font-bold">Client Quote Profile</h2>
                 <!-- Client Information -->
                 <div class="mb-4 flex flex-col">
@@ -200,7 +200,7 @@
                 <!-- Form -->
                 <form id="form_batch-quotes-form" method="post" action="/quotes/batch_send_quotes" data-table-icon-hover-color="{{ table_icon_hover_color_as_oklch }}" class="h-full flex flex-col justify-between">
                     {% for client in clients %}
-                        <div id="div_client-quote-profile_client-{{ client.id }}" style="display:none;">
+                        <div id="div_client-quote-profile_client-{{ client.id }}" data-client-id="{{ client.id }}" style="display:none;">
                             <div class="w-full mb-4 flex flex-col gap-2">
                                 <div class="w-1/4 flex flex-col">
                                     <!-- Minimum Monthly Charge -->
