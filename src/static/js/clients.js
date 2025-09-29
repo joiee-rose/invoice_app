@@ -1,16 +1,26 @@
 document.addEventListener("DOMContentLoaded", async function() {
     const toastType = localStorage.getItem("toastType");
     const toastMessage = localStorage.getItem("toastMessage");
+    const lastClientQuoteProfileId = localStorage.getItem("lastClientQuoteProfileId");
 
     // Show stored toast message after a reload
     if (toastType && toastMessage) {
         setTimeout(() => {
+            // Reopen the last viewed client quote profile form after a reload
+            if (lastClientQuoteProfileId) {
+                document.getElementById(`btn_show-client-quote-profile-form-${lastClientQuoteProfileId}`).click();
+                // Clear the id so it doesn't try to re-open again on next reload
+                localStorage.removeItem("lastClientQuoteProfileId");
+            }
+
+            // Show toast notification
             showToast(toastType, toastMessage);
             // Clear the message so it doesn't show again on next reload
             localStorage.removeItem("toastType");
             localStorage.removeItem("toastMessage");
         }, 3);
     }
+
 
     //#region CLIENT FORM
     const clientFormDialog = document.getElementById("dialog_client-form");
@@ -19,6 +29,8 @@ document.addEventListener("DOMContentLoaded", async function() {
     ////////////////////////
     /* Open/Close Events */
     //////////////////////
+
+        //#region
 
         // Open the "Add New Client" form
         document.getElementById("btn_show-new-client-form").addEventListener("click", () => {
@@ -37,16 +49,20 @@ document.addEventListener("DOMContentLoaded", async function() {
             });
         });
 
+        //#endregion
+
     //////////////////////
     /* Form Submission */
     ////////////////////
+
+        //#region
 
         // Submit the Client Form
         clientForm.addEventListener("submit", async(e) => {
             e.preventDefault();
             const formData = new FormData(e.target);
             try {
-                // Use the current form's action (set by the button that opens the form)
+                // Use the current form's action (set by the button that opens the form) -> this is either /clients/add_client or /clients/edit_client
                 const response = await fetch(clientForm.action, {
                     method: "POST",
                     body: formData,
@@ -58,7 +74,7 @@ document.addEventListener("DOMContentLoaded", async function() {
                     closeFormDialog(clientFormDialog);
                     // Store toast message before reload
                     localStorage.setItem("toastType", "success");
-                    localStorage.setItem("toastMessage", data.detail);
+                    localStorage.setItem("toastMessage", typeof data.detail === "object" ? JSON.stringify(data.detail) : data.detail);
                     // Reload the page according to the redirect url provided in the JSON response body
                     window.location.href = data.redirect_to;
                 } else {
@@ -81,15 +97,72 @@ document.addEventListener("DOMContentLoaded", async function() {
             }
         });
 
+        //#endregion
+
+    /////////////////////
+    /* Form Functions */
+    ///////////////////
+
+        //#region
+
+        /**
+         * Open the "Add New Client" version of the Client Form.
+         * Sets the form action, form header, and button text appropriately.
+         * @returns {void}
+         */
+        function openAddNewClientForm() {
+            // Set form header and button text
+            document.getElementById("h2_client-form-header").innerText = "Create New Client";
+            document.getElementById("btn_submit-client-form").innerText = "Add Client";
+            // Set the form action
+            clientForm.action = "/clients/add_client";
+            // Open the form dialog
+            openFormDialog(clientFormDialog);
+        }
+
+        /**
+         * Open the "Edit Client" version of the Client Form.
+         * Sets the form action, form header, and button text appropriately. Additionally populates the form with the client to edit's current data.
+         * @param {HTMLElement} eventElement - The button element that was clicked to open the form.
+         * @returns {void}
+         */
+        function openEditClientForm(eventElement) {
+            // Set form header and button text
+            document.getElementById("h2_client-form-header").innerText = "Edit Client Details";
+            document.getElementById("btn_submit-client-form").innerText = "Update";
+            // Set the form action
+            clientForm.action = "/clients/edit_client";
+            // Populate form with the client to edit's data
+            document.getElementById("input_client-form_name").value = eventElement.dataset.name;
+            document.getElementById("input_client-form_business-name").value = eventElement.dataset.businessName;
+            document.getElementById("input_client-form_street-address").value = eventElement.dataset.streetAddress;
+            document.getElementById("input_client-form_city").value = eventElement.dataset.city;
+            document.getElementById("input_client-form_state").value = eventElement.dataset.state;
+            document.getElementById("input_client-form_zip-code").value = eventElement.dataset.zipCode;
+            document.getElementById("input_client-form_email").value = eventElement.dataset.email;
+            document.getElementById("input_client-form_phone").value = eventElement.dataset.phone;
+            document.getElementById("input_client-form_client-id").value = eventElement.dataset.clientId;
+            // Open the form dialog
+            openFormDialog(clientFormDialog);
+        }
+
+        //#endregion
+
     /////////////////////////////////////
     /* Input Validation and Formating */
     ///////////////////////////////////
+    
+        //#region
 
-        // Phone Number Input
+        // Format the Client Form phone number input as (XXX) XXX-XXXX on blur (when element loses focus)
         document.getElementById("input_client-form_phone").addEventListener("blur", function(e) {
             formatPhoneInput(e.currentTarget);
         });
+        
+        //#endregion
+
     //#endregion CLIENT FORM
+
 
     //#region REMOVE CLIENT FORM
     const removeClientFormDialog = document.getElementById("dialog_remove-client-form");
@@ -98,6 +171,8 @@ document.addEventListener("DOMContentLoaded", async function() {
     ////////////////////////
     /* Open/Close Events */
     //////////////////////
+
+        //#region
 
         // Open the "Remove Client" form*
         document.querySelectorAll('[id^="btn_show-remove-client-form-"]').forEach((btn) => {
@@ -111,15 +186,20 @@ document.addEventListener("DOMContentLoaded", async function() {
             closeFormDialog(removeClientFormDialog);
         });
 
+        //#endregion
+
     //////////////////////
     /* Form Submission */
     ////////////////////
+
+        //#region
 
         // Submit the "Remove Client" form
         removeClientForm.addEventListener("submit", async(e) => {
             e.preventDefault();
             const formData = new FormData(e.target);
             try {
+                // Use the current form's action (set by the button that opens the form) -> this is always /clients/remove_client
                 const response = await fetch(removeClientForm.action, {
                     method: "POST",
                     body: formData,
@@ -146,16 +226,44 @@ document.addEventListener("DOMContentLoaded", async function() {
                 showToast("error", error.message || "Unexpected Error");
             }
         });
+
+        //#endregion
+    
+    /////////////////////
+    /* Form Functions */
+    ///////////////////
+
+        //#region
+
+        /**
+         * Open the "Remove Client" form.
+         * Populates the form with the client to remove's name, business name, and client id.
+         * @param {HTMLElement} eventElement - The button element that was clicked to open the form.
+         * @returns {void}
+         */
+        function openRemoveClientForm(eventElement) {
+            // Populate the form with the client to remove's data
+            document.getElementById("p_remove-client-form_name-placeholder").innerText = eventElement.dataset.name;
+            document.getElementById("p_remove-client-form_business-name-placeholder").innerText = eventElement.dataset.businessName;
+            document.getElementById("input_remove-client-form_client-id").value = eventElement.dataset.clientId;
+            // Open the form dialog
+            openFormDialog(removeClientFormDialog);
+        }
+
+        //#endregion
+
     //#endregion REMOVE CLIENT FORM
+
 
     //#region CLIENT QUOTE PROFILE FORM
     const clientQuoteProfileFormDialog = document.getElementById("dialog_client-quote-profile-form");
     const clientQuoteProfileForm = document.getElementById("form_client-quote-profile-form");
-    const servicesOptions = JSON.parse(document.getElementById("services-data").textContent);
     
     ////////////////////////
     /* Open/Close Events */
     //////////////////////
+
+        //#region
 
         // Open the Client Quote Profile Form*
         document.querySelectorAll('[id^="btn_show-client-quote-profile-form-"]').forEach((btn) => {
@@ -170,9 +278,13 @@ document.addEventListener("DOMContentLoaded", async function() {
             closeFormDialog(clientQuoteProfileFormDialog);
         });
 
+        //#endregion
+
     //////////////////////
     /* Form Submission */
     ////////////////////
+
+        //#region
 
         // Submit the Client Quote Profile Form
         clientQuoteProfileForm.addEventListener("submit", async(e) => {
@@ -191,7 +303,11 @@ document.addEventListener("DOMContentLoaded", async function() {
                     closeFormDialog(clientQuoteProfileFormDialog);
                     // Store toast message before reload
                     localStorage.setItem("toastType", "success");
-                    localStorage.setItem("toastMessage", data.detail);
+                    localStorage.setItem("toastMessage", typeof data.detail === "object" ? JSON.stringify(data.detail) : data.detail);
+                    // If saving quote profile, store the id of the client quote profile that was just viewed before reload
+                    if (clientQuoteProfileForm.action.includes("/clients/save_client_quote_profile")) {
+                        localStorage.setItem("lastClientQuoteProfileId", formData.get("client-id"));
+                    }
                     // Reload the page according to the redirect url provided in the JSON response body
                     window.location.href = data.redirect_to;
                 } else {
@@ -226,7 +342,231 @@ document.addEventListener("DOMContentLoaded", async function() {
         document.getElementById("btn_add-client-service").addEventListener("click", () => {
             addRowToClientQuoteProfileServicesTable();
         });
+
+        //#endregion
+
+    /////////////////////
+    /* Form Functions */
+    ///////////////////
+
+        //#region
+
+        /**
+         * Open the "Client Quote Profile" form.
+         * @param {HTMLElement} eventElement - The button element that was clicked to open the form.
+         * @returns {void}
+         */
+        function openClientQuoteProfileForm(eventElement) {
+            // Populate client quote form with the client's data
+            document.getElementById("p_client-quote-profile-form_name-placeholder").innerText = eventElement.dataset.name;
+            document.getElementById("p_client-quote-profile-form_business-name-placeholder").innerText = eventElement.dataset.businessName;
+            document.getElementById("p_client-quote-profile-form_billing-address-1-placeholder").innerText = eventElement.dataset.streetAddress;
+            document.getElementById("p_client-quote-profile-form_billing-address-2-placeholder").innerText = `${eventElement.dataset.city}, ${eventElement.dataset.state} ${eventElement.dataset.zipCode}`;
+            document.getElementById("input_client-quote-profile-form_client-id").value = eventElement.dataset.clientId;
+
+            // Call API route to check if client has a quote profile in the database
+            fetch(`/clients/get_client_quote_profile/${eventElement.dataset.clientId}`)
+            .then(response => {
+                if (response.status === 200) {
+                    return response.json();
+                }
+                else {
+                    // Add an empty service row to the Client Quote Profile Form
+                    addRowToClientQuoteProfileServicesTable();
+                    return null;
+                }
+            })
+            .then(data => {
+                if (data) {
+                    // Populate the Client Quote Profile Form with the client's existing quote profile data
+                    populateClientQuoteProfile(data);
+                }
+            })
+
+            // Open the form dialog
+            openFormDialog(clientQuoteProfileFormDialog);
+        }
+
+        /**
+         * Add a service row to the Client Quote Profile services table.
+         * @returns {void}
+         */
+        function addRowToClientQuoteProfileServicesTable() {
+            const tableIconHoverColorAsOklch = clientQuoteProfileForm.dataset.tableIconHoverColorAsOklch;
+
+            // Icons
+            const newDeleteIconOutlined = `
+                <svg width="1.25rem", height="1.25rem" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
+                </svg>
+            `;
+            const newDeleteIconSolid = `
+                <svg width="1.25rem", height="1.25rem" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="${tableIconHoverColorAsOklch}">
+                    <path fill-rule="evenodd" d="M16.5 4.478v.227a48.816 48.816 0 0 1 3.878.512.75.75 0 1 1-.256 1.478l-.209-.035-1.005 13.07a3 3 0 0 1-2.991 2.77H8.084a3 3 0 0 1-2.991-2.77L4.087 6.66l-.209.035a.75.75 0 0 1-.256-1.478A48.567 48.567 0 0 1 7.5 4.705v-.227c0-1.564 1.213-2.9 2.816-2.951a52.662 52.662 0 0 1 3.369 0c1.603.051 2.815 1.387 2.815 2.951Zm-6.136-1.452a51.196 51.196 0 0 1 3.273 0C14.39 3.05 15 3.684 15 4.478v.113a49.488 49.488 0 0 0-6 0v-.113c0-.794.609-1.428 1.364-1.452Zm-.355 5.945a.75.75 0 1 0-1.5.058l.347 9a.75.75 0 1 0 1.499-.058l-.346-9Zm5.48.058a.75.75 0 1 0-1.498-.058l-.347 9a.75.75 0 0 0 1.5.058l.345-9Z" clip-rule="evenodd" />
+                </svg>
+            `;
+
+            // Create a new <tr> element
+            const newRow = document.createElement("tr");
+            newRow.classList.add(`h-[2rem]`);
+            // Set the inner HTML of the new element
+            newRow.innerHTML = `
+                <!-- Service ("select"[0]) -->
+                <td class="p-2">
+                    <select name="service" class="w-full cursor-pointer">
+                        <option value="-1" selected>--</option>
+                    </select>
+                </td>
+                <!-- Quantity ("input"[0]) -->
+                <td class="p-2">
+                    <input type="number" name="quantity" size="3" min="1" step="1" value="1" class="h-[2rem] p-2 border rounded-md text-base">
+                </td>
+                <!-- Per Unit ("select"[1]) -->
+                <td class="p-2">
+                    <select name="per-unit" class="cursor-pointer">
+                        <option value="-1" selected>--</option>
+                        <option value="per-visit">per visit</option>
+                        <option value="per-push">per push</option>
+                    </select>
+                </td>
+                <!-- Unit Price ("input"[1]) -->
+                <td class="p-2">
+                    <input type="text" name="unit-price" class="h-[2rem] p-2 border rounded-md text-base">
+                </td>
+                <!-- Tax ("input"[2]) -->
+                <td class="p-2">
+                    <input type="text" name="tax" size="5" class="h-[2rem] p-2 border rounded-md text-base">
+                </td>
+                <!-- Total Price ("p"[0]) -->
+                <td class="p-2">
+                    <p name="p_total-price" class="p-2"></p>
+                    <!-- hidden input storing Total Price ("input"[3]) -->
+                    <input type="text" name="total-price" hidden>
+                </td>
+                <!-- Remove Service Button -->
+                <td class="p-2">
+                    <button
+                        id=""
+                        type="button"
+                        name="btn_remove-service"
+                        class="cursor-pointer"
+                    >
+                        <div class="icon-wrapper overflow-hidden flex-shrink-0">
+                            <span class="icon outline">${newDeleteIconOutlined}</span>
+                            <span class="icon solid">${newDeleteIconSolid}</span>
+                        </div>
+                    </button>
+                </td>
+            `;
+            // Append the new element to the table body
+            document.getElementById("tbody_client-quote-profile-services").appendChild(newRow);
+            // Create a new <option> element for each service and append to the new row's service <select> element
+            allServices.forEach((service) => {
+                const option = document.createElement("option");
+                option.value = service.name;
+                option.innerText = service.name;
+                option.dataset.unitPrice = service.unit_price;
+                newRow.getElementsByTagName("select")[0].appendChild(option);
+            });
+
+            // Add event listeners to the new row
+            const serviceSelectElement = newRow.getElementsByTagName("select")[0];
+            const quantityInputElement = newRow.getElementsByTagName("input")[0];
+            const perUnitSelectElement = newRow.getElementsByTagName("select")[1];
+            const unitPriceInputElement = newRow.getElementsByTagName("input")[1];
+            const taxInputElement = newRow.getElementsByTagName("input")[2];
+            const totalPriceText = newRow.getElementsByTagName("p")[0];
+            const totalPriceInputElement = newRow.getElementsByTagName("input")[3];
+
+            // Remove a service row from the Client Quote Profile services table
+            newRow.getElementsByTagName("button")[0].addEventListener("click", (e) => {
+                removeServiceFromClientQuoteProfileServicesTable(e.currentTarget);
+            });
+
+            // Populate unit price based on selected service
+            serviceSelectElement.addEventListener("change", () => {
+                const unitPrice = serviceSelectElement.options[serviceSelectElement.selectedIndex].dataset.unitPrice;
+                unitPriceInputElement.value = Number(unitPrice).toFixed(2);
+            });
+
+            // Update total price based on quantity, unit price, and tax
+            newRow.addEventListener("change", (e) => {
+                // Base price = quantity * unit price
+                const basePrice = Number(quantityInputElement.value) * Number(unitPriceInputElement.value);
+                // Tax amount = (tax / 100) * base price
+                const taxAmount = (Number(taxInputElement.value) / 100.00) * basePrice;
+                // Total price = base price + tax amount
+                totalPriceText.innerText = Number(basePrice + taxAmount).toFixed(2);
+                totalPriceInputElement.value = Number(basePrice + taxAmount);
+            });
+            
+            // Format unit price input as decimal (to hundreths place) on blur (when element loses focus)
+            unitPriceInputElement.addEventListener("blur", function(e) {
+                formatDecimalInput(e.currentTarget);
+            });
+
+            // Format tax percent input as decimal (to hundreths place) on blur (when element loses focus)
+            taxInputElement.addEventListener("blur", function(e) {
+                formatDecimalInput(e.currentTarget);
+            });
+        }
+
+        /**
+         * Populate the Client Quote Profile services table with existing data.
+         * @param {void} data 
+         */
+        function populateClientQuoteProfile(data) {
+            const servicesTable = document.getElementById("tbody_client-quote-profile-services");
+            servicesTable.innerHTML = "";
+            
+            // Populate the minimum monthly charge
+            document.getElementById("input_client-quote-profile-form_min-monthly-charge").value = Number(data.quote_profile.min_monthly_charge).toFixed(2);
+            // Populate the premium salt upcharge cost
+            document.getElementById("input_client-quote-profile-form_premium-salt-upcharge").value = Number(data.quote_profile.premium_salt_upcharge).toFixed(2);
+            // Add and populate a service row for each existing service in the client's quote profile
+            for (let i = 0; i < data.quote_profile.services.length; ++i) {
+                addRowToClientQuoteProfileServicesTable();
+                const newRow = servicesTable.lastElementChild;
+                newRow.getElementsByTagName("select")[0].value = data.quote_profile.services[i].service_name;
+                newRow.getElementsByTagName("input")[0].value = data.quote_profile.services[i].quantity;
+                newRow.getElementsByTagName("select")[1].value = data.quote_profile.services[i].per_unit;
+                newRow.getElementsByTagName("input")[1].value = Number(data.quote_profile.services[i].unit_price).toFixed(2);
+                newRow.getElementsByTagName("input")[2].value = Number(data.quote_profile.services[i].tax).toFixed(2);
+                newRow.getElementsByTagName("p")[0].innerText = Number(data.quote_profile.services[i].total_price).toFixed(2);
+                newRow.getElementsByTagName("input")[3].value = Number(data.quote_profile.services[i].total_price).toFixed(2);
+            }
+        }
+
+        /**
+         * Remove a service row from the Client Quote Profile services table.
+         * @returns {void}
+         */
+        function removeServiceFromClientQuoteProfileServicesTable(eventElement) {
+            eventElement.parentElement.parentElement.remove();
+        }
+
+        //#endregion
+    
+    /////////////////////////////////////
+    /* Input Validation and Formating */
+    ///////////////////////////////////
+
+        //#region
+
+        // Format min monthly charge input as decimal (to hundreths place) on blur (when element loses focus)
+        document.getElementById("input_client-quote-profile-form_min-monthly-charge").addEventListener("blur", function(e) {
+            formatDecimalInput(e.currentTarget);
+        });
+
+        // Format premium salt upcharge input as decimal (to hundreths place) on blur (when element loses focus)
+        document.getElementById("input_client-quote-profile-form_premium-salt-upcharge").addEventListener("blur", function(e) {
+            formatDecimalInput(e.currentTarget);
+        });
+
+        //#endregion
+
     //#endregion CLIENT QUOTE PROFILE FORM
+
 
     //#region SEARCH
     const searchInput = document.getElementById("input_search");
@@ -243,9 +583,96 @@ document.addEventListener("DOMContentLoaded", async function() {
         if (searchInput.value.trim() === "") return;
         searchAllClientsTable(searchInput.value, e.currentTarget.value);
     });
+
+    /////////////////////
+    /* Form Functions */
+    ///////////////////
+
+        //#region
+
+        /**
+         * Search the all clients table for clients matching an input search string.
+         * If the number of matches found exceeds the number of rows shown per page, enable vertical scrolling for the table.
+         * @param {string} searchInput - The input search string.
+         * @param {string} searchBy - The field to search by.
+         * @returns {void}
+         */
+        function searchAllClientsTable(searchInput, searchBy) {
+            const tableDiv = document.getElementById("div_table");
+            const tablePaginationDiv = document.getElementById("div_table-pagination");
+            const allClientsTableBody = document.getElementById("tbody_all-clients");
+            searchInput = searchInput.toLowerCase().trim();
+
+            // Clear the current table
+            allClientsTableBody.innerHTML = "";
+            // Iterate through the list of all services and add matches to the table
+            let matchesFound = 0;
+            allClients.forEach((client) => {
+                switch (searchBy) {
+                    case "name":
+                        if (client.name.toLowerCase().includes(searchInput)) {
+                            addClientToAllClientsTable(client);
+                            ++matchesFound;
+                        };
+                        break;
+                    case "business-name":
+                        if (client.business_name.toLowerCase().includes(searchInput)) {
+                            addClientToAllClientsTable(client);
+                            ++matchesFound;
+                        };
+                        break;
+                    case "billing-address":
+                        const billing_address = `${client.street_address} ${client.city} ${client.state} ${client.zip_code}`;
+                        if (billing_address.toLowerCase().includes(searchInput)) {
+                            addClientToAllClientsTable(client);
+                            ++matchesFound;
+                        };
+                        break;
+                    case "email":
+                        if (client.email.toLowerCase().includes(searchInput)) {
+                            addClientToAllClientsTable(client);
+                            ++matchesFound;
+                        };
+                        break;
+                    case "phone":
+                        if (client.phone.toLowerCase().includes(searchInput)) {
+                            addClientToAllClientsTable(client);
+                            ++matchesFound;
+                        };
+                        break;
+                }
+            });
+
+            (matchesFound > perPage) && tableDiv.classList.add("max-h-[48rem]", "overflow-y-auto");
+            tablePaginationDiv.classList.add("hidden");
+        }
+
+        /**
+         * Clear any search filters applied to the all clients table and restore the current page's clients.
+         * @returns {void}
+         */
+        function clearAllClientsTableSearch() {
+            const tableDiv = document.getElementById("div_table");
+            const tablePaginationDiv = document.getElementById("div_table-pagination");
+            const allClientsTableBody = document.getElementById("tbody_all-clients");
+
+            // Clear the current table
+            allClientsTableBody.innerHTML = "";
+            // Add the page's clients back to the table
+            pageClients.forEach((client) => {
+                addClientToAllClientsTable(client);
+            })
+
+            tableDiv.classList.remove("max-h-[48rem]", "overflow-y-auto");
+            tablePaginationDiv.classList.remove("hidden");
+        }
+
+        //#endregion
+
     //#endregion SEARCH
 
-    //#region FUNCTIONS
+
+    //#region GENERAL/REUSABLE FUNCTIONS
     /**
      * Open a form dialog.
      * @param {HTMLDialogElement} formDialog - The form dialog to open.
@@ -305,314 +732,25 @@ document.addEventListener("DOMContentLoaded", async function() {
     }
 
     /**
-     * Open the "Add New Client" version of the Client Form.
+     * Format a decimal to the hundreths place.
+     * @param {HTMLInputElement} eventElement - The decimal input element to format.
      * @returns {void}
      */
-    function openAddNewClientForm() {
-        // Set form header and button text
-        document.getElementById("h2_client-form-header").innerText = "Create New Client";
-        document.getElementById("btn_submit-client-form").innerText = "Add Client";
-        // Set the form action
-        clientForm.action = "/clients/add_client";
-        // Open the form dialog
-        openFormDialog(clientFormDialog);
+    function formatDecimalInput(eventElement) {
+        (!isNaN(Number(eventElement.value))) && (eventElement.value = Number(eventElement.value).toFixed(2));
     }
+    //#endregion GENERAL/REUSABLE FUNCTIONS
 
-    /**
-     * Open the "Edit Client" version of the Client Form.
-     * @param {HTMLElement} eventElement - The button element that was clicked to open the form.
-     * @returns {void}
-     */
-    function openEditClientForm(eventElement) {
-        // Set form header and button text
-        document.getElementById("h2_client-form-header").innerText = "Edit Client Details";
-        document.getElementById("btn_submit-client-form").innerText = "Update";
-        // Set the form action
-        clientForm.action = "/clients/edit_client";
-        // Populate form with the client to edit's data
-        document.getElementById("input_client-form_name").value = eventElement.dataset.name;
-        document.getElementById("input_client-form_business-name").value = eventElement.dataset.businessName;
-        document.getElementById("input_client-form_street-address").value = eventElement.dataset.streetAddress;
-        document.getElementById("input_client-form_city").value = eventElement.dataset.city;
-        document.getElementById("input_client-form_state").value = eventElement.dataset.state;
-        document.getElementById("input_client-form_zip-code").value = eventElement.dataset.zipCode;
-        document.getElementById("input_client-form_email").value = eventElement.dataset.email;
-        document.getElementById("input_client-form_phone").value = eventElement.dataset.phone;
-        document.getElementById("input_client-form_client-id").value = eventElement.dataset.clientId;
-        // Open the form dialog
-        openFormDialog(clientFormDialog);
-    }
 
-    /**
-     * Open the "Remove Client" form.
-     * @param {HTMLElement} eventElement - The button element that was clicked to open the form.
-     * @returns {void}
-     */
-    function openRemoveClientForm(eventElement) {
-        // Populate the form with the client to remove's data
-        document.getElementById("p_remove-client-form_name-placeholder").innerText = eventElement.dataset.name;
-        document.getElementById("p_remove-client-form_business-name-placeholder").innerText = eventElement.dataset.businessName;
-        document.getElementById("input_remove-client-form_client-id").value = eventElement.dataset.clientId;
-        // Open the form dialog
-        openFormDialog(removeClientFormDialog);
-    }
-
-    /**
-     * Open the "Client Quote Profile" form.
-     * @param {HTMLElement} eventElement - The button element that was clicked to open the form.
-     */
-    function openClientQuoteProfileForm(eventElement) {
-        // Populate client quote form with the client's data
-        document.getElementById("p_client-quote-profile-form_name-placeholder").innerText = eventElement.dataset.name;
-        document.getElementById("p_client-quote-profile-form_business-name-placeholder").innerText = eventElement.dataset.businessName;
-        document.getElementById("p_client-quote-profile-form_billing-address-1-placeholder").innerText = eventElement.dataset.streetAddress;
-        document.getElementById("p_client-quote-profile-form_billing-address-2-placeholder").innerText = `${eventElement.dataset.city}, ${eventElement.dataset.state} ${eventElement.dataset.zipCode}`;
-        document.getElementById("input_client-quote-profile-form_client-id").value = eventElement.dataset.clientId;
-
-        // Check if client has a quote profile in the database
-        fetch(`/clients/get_client_quote_profile/${eventElement.dataset.clientId}`)
-        .then(response => {
-            if (response.status === 200) {
-                return response.json();
-            }
-            else {
-                // Add an empty service row to the Client Quote Profile Form
-                addRowToClientQuoteProfileServicesTable();
-                return null;
-            }
-        })
-        .then(data => {
-            if (data) {
-                // Populate the Client Quote Profile Form with the client's existing quote profile data
-                populateClientQuoteProfile(data);
-            }
-        })
-
-        // Open the form dialog
-        openFormDialog(clientQuoteProfileFormDialog);
-    }
-
-    /**
-     * Add a service row to the Client Quote Profile services table.
-     * @returns {void}
-     */
-    function addRowToClientQuoteProfileServicesTable() {
-        const tableIconHoverColorAsOklch = clientQuoteProfileForm.dataset.tableIconHoverColorAsOklch;
-
-        // Icons
-        const newDeleteIconOutlined = `
-            <svg width="1.25rem", height="1.25rem" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
-            </svg>
-        `;
-        const newDeleteIconSolid = `
-            <svg width="1.25rem", height="1.25rem" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="${tableIconHoverColorAsOklch}">
-                <path fill-rule="evenodd" d="M16.5 4.478v.227a48.816 48.816 0 0 1 3.878.512.75.75 0 1 1-.256 1.478l-.209-.035-1.005 13.07a3 3 0 0 1-2.991 2.77H8.084a3 3 0 0 1-2.991-2.77L4.087 6.66l-.209.035a.75.75 0 0 1-.256-1.478A48.567 48.567 0 0 1 7.5 4.705v-.227c0-1.564 1.213-2.9 2.816-2.951a52.662 52.662 0 0 1 3.369 0c1.603.051 2.815 1.387 2.815 2.951Zm-6.136-1.452a51.196 51.196 0 0 1 3.273 0C14.39 3.05 15 3.684 15 4.478v.113a49.488 49.488 0 0 0-6 0v-.113c0-.794.609-1.428 1.364-1.452Zm-.355 5.945a.75.75 0 1 0-1.5.058l.347 9a.75.75 0 1 0 1.499-.058l-.346-9Zm5.48.058a.75.75 0 1 0-1.498-.058l-.347 9a.75.75 0 0 0 1.5.058l.345-9Z" clip-rule="evenodd" />
-            </svg>
-        `;
-
-        // Create a new <tr> element
-        const newRow = document.createElement("tr");
-        newRow.classList.add(`h-[2rem]`);
-        // Set the inner HTML of the new element
-        newRow.innerHTML = `
-            <!-- Service ("select"[0]) -->
-            <td class="p-2">
-                <select name="service" class="w-full cursor-pointer">
-                    <option value="-1" selected>--</option>
-                </select>
-            </td>
-            <!-- Quantity ("input"[0]) -->
-            <td class="p-2">
-                <input type="number" name="quantity" size="3" min="1" step="1" value="1" class="h-[2rem] p-2 border rounded-md text-base">
-            </td>
-            <!-- Per Unit ("select"[1]) -->
-            <td class="p-2">
-                <select name="per-unit" class="cursor-pointer">
-                    <option value="-1" selected>--</option>
-                    <option value="per-visit">per visit</option>
-                    <option value="per-push">per push</option>
-                </select>
-            </td>
-            <!-- Unit Price ("input"[1]) -->
-            <td class="p-2">
-                <input type="text" name="unit-price" class="h-[2rem] p-2 border rounded-md text-base">
-            </td>
-            <!-- Tax ("input"[2]) -->
-            <td class="p-2">
-                <input type="text" name="tax" size="5" class="h-[2rem] p-2 border rounded-md text-base">
-            </td>
-            <!-- Total Price ("p"[0]) -->
-            <td class="p-2">
-                <p name="p_total-price" class="p-2"></p>
-                <!-- hidden input storing Total Price ("input"[3]) -->
-                <input type="text" name="total-price" hidden>
-            </td>
-            <!-- Remove Service Button -->
-            <td class="p-2">
-                <button
-                    id=""
-                    type="button"
-                    name="btn_remove-service"
-                    class="cursor-pointer"
-                >
-                    <div class="icon-wrapper overflow-hidden flex-shrink-0">
-                        <span class="icon outline">${newDeleteIconOutlined}</span>
-                        <span class="icon solid">${newDeleteIconSolid}</span>
-                    </div>
-                </button>
-            </td>
-        `;
-        // Append the new element to the table body
-        document.getElementById("tbody_client-quote-profile-services").appendChild(newRow);
-        // Create a new <option> element for each service and append to the new row's service <select> element
-        Array.from(servicesOptions).forEach((service) => {
-            const option = document.createElement("option");
-            option.value = service.name;
-            option.innerText = service.name;
-            option.dataset.unitPrice = service.unit_price;
-            newRow.getElementsByTagName("select")[0].appendChild(option);
-        });
-
-        // Add event listeners to the new row
-        newRow.getElementsByTagName("button")[0].addEventListener("click", (e) => {
-            // Remove a service row from the Client Quote Profile services table
-            removeServiceFromClientQuoteProfileServicesTable(e.currentTarget);
-        });
-        newRow.getElementsByTagName("select")[0].addEventListener("change", () => {
-            // Populate unit price based on selected service
-            const unitPrice = newRow.getElementsByTagName("select")[0].options[newRow.getElementsByTagName("select")[0].selectedIndex].dataset.unitPrice;
-            newRow.getElementsByTagName("input")[1].value = Number(unitPrice).toFixed(2);
-        });
-        newRow.addEventListener("change", (e) => {
-            // Update total price based on quantity, unit price, and tax
-            // Base price = quantity * unit price
-            const basePrice = Number(newRow.getElementsByTagName("input")[0].value) * Number(newRow.getElementsByTagName("input")[1].value);
-            // Tax amount = (tax / 100) * base price
-            const taxAmount = (Number(newRow.getElementsByTagName("input")[2].value) / 100.00) * basePrice;
-            // Total price = base price + tax amount
-            newRow.getElementsByTagName("p")[0].innerText = Number(basePrice + taxAmount).toFixed(2);
-            newRow.getElementsByTagName("input")[3].value = Number(basePrice + taxAmount);
-        });
-    }
-
-    /**
-     * Populate the Client Quote Profile services table with existing data.
-     * @param {void} data 
-     */
-    function populateClientQuoteProfile(data) {
-        const servicesTable = document.getElementById("tbody_client-quote-profile-services");
-        servicesTable.innerHTML = "";
-        
-        // Populate the minimum monthly charge
-        document.getElementById("input_client-quote-profile-form_min-monthly-charge").value = Number(data.quote_profile.min_monthly_charge).toFixed(2);
-        // Populate the premium salt upcharge cost
-        document.getElementById("input_client-quote-profile-form_premium-salt-upcharge").value = Number(data.quote_profile.premium_salt_upcharge).toFixed(2);
-        // Add and populate a service row for each existing service in the client's quote profile
-        for (let i = 0; i < data.quote_profile.services.length; ++i) {
-            addRowToClientQuoteProfileServicesTable();
-            const newRow = servicesTable.lastElementChild;
-            newRow.getElementsByTagName("select")[0].value = data.quote_profile.services[i].service_name;
-            newRow.getElementsByTagName("input")[0].value = data.quote_profile.services[i].quantity;
-            newRow.getElementsByTagName("select")[1].value = data.quote_profile.services[i].per_unit;
-            newRow.getElementsByTagName("input")[1].value = Number(data.quote_profile.services[i].unit_price).toFixed(2);
-            newRow.getElementsByTagName("input")[2].value = Number(data.quote_profile.services[i].tax).toFixed(2);
-            newRow.getElementsByTagName("p")[0].innerText = Number(data.quote_profile.services[i].total_price).toFixed(2);
-            newRow.getElementsByTagName("input")[3].value = Number(data.quote_profile.services[i].total_price).toFixed(2);
-        }
-    }
-
-    /**
-     * Remove a service row from the Client Quote Profile services table.
-     * @returns {void}
-     */
-    function removeServiceFromClientQuoteProfileServicesTable(eventElement) {
-        eventElement.parentElement.parentElement.remove();
-    }
-
-    /**
-     * Search the all clients table for clients matching an input search string.
-     * If the number of matches found exceeds the number of rows shown per page, enable vertical scrolling for the table.
-     * @param {string} searchInput - The input search string.
-     * @param {string} searchBy - The field to search by.
-     * @returns {void}
-     */
-    function searchAllClientsTable(searchInput, searchBy) {
-        const tableDiv = document.getElementById("div_table");
-        const tablePaginationDiv = document.getElementById("div_table-pagination");
-        const allClientsTableBody = document.getElementById("tbody_all-clients");
-        searchInput = searchInput.toLowerCase().trim();
-
-        // Clear the current table
-        allClientsTableBody.innerHTML = "";
-        // Iterate through the list of all services and add matches to the table
-        let matchesFound = 0;
-        allClients.forEach((client) => {
-            switch (searchBy) {
-                case "name":
-                    if (client.name.toLowerCase().includes(searchInput)) {
-                        addClientToAllClientsTable(client);
-                        ++matchesFound;
-                    };
-                    break;
-                case "business-name":
-                    if (client.business_name.toLowerCase().includes(searchInput)) {
-                        addClientToAllClientsTable(client);
-                        ++matchesFound;
-                    };
-                    break;
-                case "billing-address":
-                    const billing_address = `${client.street_address} ${client.city} ${client.state} ${client.zip_code}`;
-                    if (billing_address.toLowerCase().includes(searchInput)) {
-                        addClientToAllClientsTable(client);
-                        ++matchesFound;
-                    };
-                    break;
-                case "email":
-                    if (client.email.toLowerCase().includes(searchInput)) {
-                        addClientToAllClientsTable(client);
-                        ++matchesFound;
-                    };
-                    break;
-                 case "phone":
-                    if (client.phone.toLowerCase().includes(searchInput)) {
-                        addClientToAllClientsTable(client);
-                        ++matchesFound;
-                    };
-                    break;
-            }
-        });
-
-        (matchesFound > perPage) && tableDiv.classList.add("max-h-[48rem]", "overflow-y-auto");
-        tablePaginationDiv.classList.add("hidden");
-    }
-
-    /**
-     * Clear any search filters applied to the all clients table and restore the current page's clients.
-     * @returns {void}
-     */
-    function clearAllClientsTableSearch() {
-        const tableDiv = document.getElementById("div_table");
-        const tablePaginationDiv = document.getElementById("div_table-pagination");
-        const allClientsTableBody = document.getElementById("tbody_all-clients");
-
-        // Clear the current table
-        allClientsTableBody.innerHTML = "";
-        // Add the page's clients back to the table
-        pageClients.forEach((client) => {
-            addClientToAllClientsTable(client);
-        })
-
-        tableDiv.classList.remove("max-h-[48rem]", "overflow-y-auto");
-        tablePaginationDiv.classList.remove("hidden");
-    }
-
+    //#region DEPRECATED FUNCTIONS
     /**
      * Add a client to the all clients table.
      * @param {{ id: number, name: string, business_name: string, city: string, state: string, zip_code: string, email: string, phone: string}} client - The client as a JSON object containing the unique ID and data of the new client.
      * @returns {void}
+     * 
+     * 09/19/2025 - This function is no longer used because the page reloads after a client is added.
      */
-    function addClientToAllClientsTable(client) {
+    /*function addClientToAllClientsTable(client) {
         const allClientsTableBody = document.getElementById("tbody_all-clients");
         const iconHoverColor = clientForm.dataset.iconHoverColor;
 
@@ -727,10 +865,8 @@ document.addEventListener("DOMContentLoaded", async function() {
             // Open the "Client Quote Profile" form
             openClientQuoteProfileForm(e.currentTarget);
         });
-    }
-    //#endregion FUNCTIONS
+    }*/
 
-    //#region DEPRECATED FUNCTIONS
     /**
      * Remove a client from the all clients table.
      * @param {{ id: number }} client - The client as a JSON object containing the unique ID of the removed client.

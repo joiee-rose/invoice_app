@@ -329,10 +329,10 @@
 
 {% block javascript %}
     <script src="/static/js/clients.js"></script>
-    <script id="services-data" type="application/json">{{ services | tojson }}</script>
     <script>
         const allClients = {{ all_clients_dict | tojson }};
         const pageClients = {{ page_clients_dict | tojson }};
+        const allServices = {{ all_services_dict | tojson }};
         const perPage = {{ per_page }};
     </script>
 {% endblock %}

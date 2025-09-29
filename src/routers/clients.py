@@ -11,7 +11,13 @@ from sqlmodel import Session, select
 
 import utils
 from database import get_session
-from models import Client, Service, ClientQuoteProfile, Quote, AppSetting
+from models import (
+    Client,
+    Service,
+    ClientQuoteProfile,
+    Quote,
+    AppSetting
+)
 from services import (
     ClientCRUD,
     ClientQuoteProfileCRUD,
@@ -54,29 +60,20 @@ def render_clients_page(
     """
     # Determine number of clients to show per page based on screen height
     per_page = utils.get_per_page("clients")
-
-    # Slice the list of all clients based on the number of clients per page
     all_clients = session.exec(select(Client)).all()
     total = len(all_clients)
     start = (page - 1) * per_page
     end = start + per_page
+    # Slice the list of all clients based on the number of clients per page
     page_clients = all_clients[start:end]
     # Count the number of pages necessary to show all the clients
     total_pages = (total + per_page - 1) // per_page
 
-    # Convert clients lists to JSON-serializable format for use in javascript
+    # Serialize data as JSON-compatible dictionaries for injection into the
+    # JavaScript via the HTML template
     all_clients_dict = jsonable_encoder(all_clients)
     page_clients_dict = jsonable_encoder(page_clients)
-
-    services = session.exec(select(Service)).all()
-    services_data = [
-        {
-            "id": service.id,
-            "name": service.name,
-            "unit_price": str(service.unit_price)
-        }
-        for service in services
-    ]
+    all_services_dict = jsonable_encoder(session.exec(select(Service)).all())
 
     # Get color theme and page colors
     color_theme = session.get(AppSetting, "0001").setting_value
@@ -86,13 +83,15 @@ def render_clients_page(
         request=request, 
         name="clients.html", 
         context={
-            "all_clients_dict": all_clients_dict,
             "page_clients": page_clients,
-            "page_clients_dict": page_clients_dict,
-            "services": services_data,
             "page": page,
             "per_page": per_page,
             "total_pages": total_pages,
+            # json-serialized data
+            "all_clients_dict": all_clients_dict,
+            "page_clients_dict": page_clients_dict,
+            "all_services_dict": all_services_dict,
+            # styling
             "theme": session.get(AppSetting, "0000").setting_value,
             "colorTheme": color_theme,
             **colors
@@ -452,7 +451,7 @@ async def save_client_quote_profile(
         },
         status_code=200,
     )
-
+ 
 @router.post("/send_quote")
 async def send_quote(
     request: Request,
@@ -614,11 +613,27 @@ async def send_quote(
         status_code=200
     )
 
-@router.get("/get_client_quote_profile/{client_id}", response_class=JSONResponse)
+@router.get("/get_client_quote_profile/{client_id}")
 async def get_client_quote_profile(
     session: SessionDependency,
     client_id: int
 ) -> JSONResponse:
+    """
+    Fetches a client's client quote profile from the database.
+
+    Parameters:
+    - session: A SQLModel session dependency for database access.
+    - client_id: The unique ID of the client.
+
+    Returns:
+    - `JSONResponse`: A JSON object containing a status message, status code, 
+    and the client quote profile object's data if the operation is successful.
+
+    Raises:
+    - HTTPException:
+        - 404 (NOT FOUND) if the client quote profile does not exist in the 
+        database
+    """
     # Get the client quote profile from the database
     get_status, quote_profile = utils.call_service_or_404(
         ClientQuoteProfileCRUD.get,
