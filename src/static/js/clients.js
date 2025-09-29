@@ -179,7 +179,7 @@ document.addEventListener("DOMContentLoaded", async function() {
             e.preventDefault();
             const formData = new FormData(e.target);
             try {
-                // Use the current form's action (set by the button chosen in the form)
+                // Use the current form's action (set by the button chosen in the form) -> this is either /clients/save_client_quote_profile or /clients/send_quote
                 const response = await fetch(clientQuoteProfileForm.action, {
                     method: "POST",
                     body: formData,

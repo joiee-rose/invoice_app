@@ -129,7 +129,8 @@ def add_client(
 
     Returns:
     - `JSONResponse`: A JSON object containing a status message, status code, 
-    and the newly created client object if the operation is successful.
+    redirect url, and the newly created client object data if the operation is 
+    successful.
 
     Raises:
     - HTTPException:
@@ -222,7 +223,8 @@ def edit_client(
 
     Returns:
     - `JSONResponse`: A JSON object containing a status message, status code, 
-    and the edited client object if the operation is successful.
+    redirect url, and the edited client object data if the operation is 
+    successful.
 
     Raises:
     - HTTPException:
@@ -294,10 +296,10 @@ def remove_client(
     - client_id: The unique ID of the client to remove.
     - current_page: The current page of clients being viewed in the table.
     
-
     Returns:
     - `JSONResponse`: A JSON object containing a status message, status code, 
-    and the removed service object's unique id if the operation is successful.
+    redirect url, and the removed client's unique id if the operation is 
+    successful.
 
     Raises:
     - HTTPException:
@@ -364,9 +366,12 @@ async def save_client_quote_profile(
     - client_id: The unique ID of the client.
     - min_monthly_charge: The minimum monthly charge for the client.
     - premium_salt_upcharge: The premium salt up-charge cost for the client.
+    - current_page: The current page of clients being viewed in the table.
 
     Returns:
-    - `JSONResponse`: A JSON object containing a status message and status code.
+    - `JSONResponse`: A JSON object containing a status message, status code, 
+    redirect url, the client's unique id, and the client quote profile object's 
+    data if the operation is successful.
 
     Raises:
     - HTTPException:
@@ -407,7 +412,6 @@ async def save_client_quote_profile(
             grand_total=Decimal(grand_total)
         )
     )
-    print("validate status: ", validate_status)
 
     # Check if client quote profile already exists
     existing_client_quote_profile = session.get(ClientQuoteProfile, client_id)
@@ -457,7 +461,7 @@ async def send_quote(
     min_monthly_charge: Decimal = Form(..., alias="min-monthly-charge"),
     premium_salt_upcharge: Decimal = Form(..., alias="premium-salt-upcharge"),
     current_page: int = Form(..., alias="current-page")
-):
+) -> JSONResponse:
     """
     Send a quote as a PDF to the client via email.
 
@@ -466,9 +470,13 @@ async def send_quote(
     - session: A SQLModel session dependency for database access.
     - client_id: The unique ID of the client.
     - min_monthly_charge: The minimum monthly charge for the client.
+    - premium_salt_upcharge: The premium salt up-charge cost for the client.
+    - current_page: The current page of clients being viewed in the table.
 
     Returns:
-    - RedirectResponse: If successful, a redirect response to the clients page with HTTP status code 303 (SEE OTHER).
+    - `JSONResponse`:A JSON object containing a status message, status code, 
+    redirect url, and the newyly created quote's unique id if the operation is 
+    successful.
 
     Raises:
     - HTTPException:
@@ -502,7 +510,7 @@ async def send_quote(
 
     # Get the number of quotes existing for the client and generate a quote
     # number for the quote based on that value and the client's unique id
-    _, num_quotes = utils.call_service_or_500(
+    status, num_quotes = utils.call_service_or_500(
         QuoteCRUD.count_by_client_id,
         client_id,
         session
@@ -510,7 +518,7 @@ async def send_quote(
     quote_no = f"{client_id}-{str(num_quotes + 1).zfill(4)}"
 
     # Get the path to save quote PDFs to from app settings (id: 3000)
-    _, app_setting = utils.call_service_or_404(
+    status, app_setting = utils.call_service_or_404(
         AppSettingCRUD.get,
         "3000",
         session
@@ -518,7 +526,7 @@ async def send_quote(
     pdf_save_path = app_setting.setting_value
 
     # Generate HTML source for the quote pdf
-    _, html_source = utils.call_service_or_500(
+    status, html_source = utils.call_service_or_500(
         PDFServices.generate_html_source,
         file_type="quote",
         client=client,
@@ -531,7 +539,7 @@ async def send_quote(
     )
 
     # Save the PDF
-    _ = utils.call_service_or_500(
+    status, _ = utils.call_service_or_500(
         PDFServices.save_pdf,
         file_type="quote",
         client=client,
@@ -542,7 +550,7 @@ async def send_quote(
     )
 
     # Get the quote email body from app settings (id: 3001)
-    _, app_setting = utils.call_service_or_404(
+    status, app_setting = utils.call_service_or_404(
         AppSettingCRUD.get,
         "3001",
         session
@@ -561,7 +569,7 @@ async def send_quote(
     # User's Business Phone No.
 
     # Send the email
-    _, _ = await utils.call_async_service_or_500(
+    status, _ = await utils.call_async_service_or_500(
         EmailServices.send_email,
         subject="M&M Quote Request",
         recipients=[client.email],
@@ -579,7 +587,7 @@ async def send_quote(
     )
 
     # Validate the new quote data
-    _, new_quote = utils.call_service_or_422(
+    status, new_quote = utils.call_service_or_422(
         QuoteCRUD.validate_data,
         Quote(
             client_id=client_id,
@@ -589,7 +597,7 @@ async def send_quote(
     )
     
     # Create the new quote in the database
-    quote_status, quote = utils.call_service_or_500(
+    status, quote = utils.call_service_or_500(
         QuoteCRUD.create,
         new_quote,
         session
@@ -597,7 +605,10 @@ async def send_quote(
 
     return JSONResponse(
         content={
-            "detail": quote_status,
+            "detail": status,
+            "quote": {
+                "quote_id": quote.id,
+            },
             "redirect_to": f"/clients?page={current_page}",
         },
         status_code=200
